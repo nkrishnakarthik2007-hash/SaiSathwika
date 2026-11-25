@@ -4,7 +4,7 @@ import { ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search,
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import AdminDashboard from './AdminDashboard';
 
-type Product = { id: string; name: string; price: number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
+type Product = { id: string; category_id?: string | null; name: string; price: number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
 
 const categoryIcons = [Milk, Leaf, IceCream, Milk];
@@ -12,6 +12,7 @@ const fallbackCategories = ['Milk & Varieties', 'Curd & Buttermilk', 'Ice Creams
 
 export default function App() {
   const [query, setQuery] = useState('');
+  const [activeCategory,setActiveCategory]=useState<string|null>(null);
   const [cart, setCart] = useState<Record<string, number>>({});
   const [session, setSession] = useState<Session | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -47,7 +48,7 @@ export default function App() {
     if (!supabase) return;
     let alive = true;
     Promise.all([
-      supabase.from('products').select('id,name,price,mrp,image_urls,variant_label,unit,brands(name)').eq('is_available', true).gt('stock_quantity', 0).order('sort_order'),
+      supabase.from('products').select('id,category_id,name,price,mrp,image_urls,variant_label,unit,brands(name)').eq('is_available', true).gt('stock_quantity', 0).order('sort_order'),
       supabase.from('categories').select('id,name').eq('is_active', true).order('sort_order'),
     ]).then(([productResult, categoryResult]) => {
       if (!alive) return;
@@ -105,7 +106,7 @@ export default function App() {
     } catch(error:any) { setNotice(error?.message ?? 'Could not place your order. Please try again.'); }
     finally { setCheckoutBusy(false); }
   }
-  const filtered = useMemo(() => products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()) || (p.brands?.[0]?.name ?? '').toLowerCase().includes(query.toLowerCase())), [products, query]);
+  const filtered = useMemo(() => products.filter(p => (!activeCategory || p.category_id===activeCategory) && (p.name.toLowerCase().includes(query.toLowerCase()) || (p.brands?.[0]?.name ?? '').toLowerCase().includes(query.toLowerCase()))), [products, query, activeCategory]);
 
   async function signIn() {
     if (!supabase) { setNotice('The shop database is being connected. Please check back soon.'); return; }
@@ -125,7 +126,7 @@ export default function App() {
       <div className="location"><MapPin size={17}/><span><small>DELIVERING TO</small><strong>Select your address</strong></span></div>
       <div className="header-actions">
         <button className="account" onClick={() => session ? supabase?.auth.signOut() : setLoginOpen(true)}><UserRound size={17}/>{session ? 'Sign out' : 'Sign in'}</button>
-        {['admin','super_admin','staff'].includes(adminRole) && <button className="account" onClick={()=>setAdminView(true)}><ShieldCheck size={17}/> Admin</button>}
+        {['admin','super_admin'].includes(adminRole) && <button className="account" onClick={()=>setAdminView(true)}><ShieldCheck size={17}/> Admin</button>}
         <button className="cart" onClick={() => setCartOpen(true)}><ShoppingBag size={19}/> Cart <b>{cartCount}</b></button>
       </div>
     </header>
@@ -150,9 +151,9 @@ export default function App() {
       <div className="section-heading"><div><span className="eyebrow">THE GOODNESS COLLECTION</span><h2>Shop by category</h2></div><span className="muted">Fresh picks from your local store</span></div>
       <div className="search"><Search size={19}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search products or brands..."/></div>
       <div className="categories">
-        {(categories.length ? categories : fallbackCategories.map((name, i) => ({id: String(i), name}))).map((category, i) => { const Icon = categoryIcons[i % categoryIcons.length]; return <article className="category" key={category.id}><div className="category-icon"><Icon size={29}/></div><div><h3>{category.name}</h3><p>Explore our {category.name.toLowerCase()}</p></div><ArrowRight className="category-arrow" size={18}/></article>; })}
+        {(categories.length ? categories : fallbackCategories.map((name, i) => ({id: String(i), name}))).map((category, i) => { const Icon = categoryIcons[i % categoryIcons.length]; return <article className={activeCategory===category.id?"category active-category":"category"} key={category.id} onClick={()=>setActiveCategory(activeCategory===category.id?null:category.id)} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setActiveCategory(activeCategory===category.id?null:category.id);}}}><div className="category-icon"><Icon size={29}/></div><div><h3>{category.name}</h3><p>Explore our {category.name.toLowerCase()}</p></div><ArrowRight className="category-arrow" size={18}/></article>; })}
       </div>
-      <div className="section-heading product-heading"><div><span className="eyebrow">SHOP YOUR FAVOURITES</span><h2>Available products</h2></div><span className="muted">{products.length} products</span></div>
+      <div className="section-heading product-heading"><div><span className="eyebrow">SHOP YOUR FAVOURITES</span><h2>Available products</h2></div><span className="muted">{activeCategory?categories.find(x=>x.id===activeCategory)?.name+" · ":""}{filtered.length} products {activeCategory&&<button className="clear-filter" onClick={()=>setActiveCategory(null)}>Clear filter</button>}</span></div>
       {!isSupabaseConfigured && <div className="empty-products"><div className="empty-icon"><ShoppingBag size={25}/></div><h3>We're getting the shop ready</h3><p>Product catalogue and sign-in will become live when the secure shop connection is configured.</p></div>}
       {isSupabaseConfigured && loading && <p className="loading-text">Loading fresh picks…</p>}
       {isSupabaseConfigured && !loading && products.length === 0 && <div className="empty-products"><div className="empty-icon"><ShoppingBag size={25}/></div><h3>Products are coming soon</h3><p>Our team is preparing the catalogue. Check back soon for fresh milk, curd, ice creams and more.</p></div>}
