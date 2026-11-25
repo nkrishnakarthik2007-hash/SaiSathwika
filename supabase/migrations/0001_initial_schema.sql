@@ -181,8 +181,8 @@ alter table public.order_items enable row level security;
 alter table public.promotions enable row level security;
 
 create policy "Users read own profile" on public.profiles for select to authenticated using (id = auth.uid() or public.is_admin());
-create policy "Users update own basic profile" on public.profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid() and role = (select p.role from public.profiles p where p.id = auth.uid()));
-create policy "Admins manage profiles" on public.profiles for all to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "Admins read profiles" on public.profiles for select to authenticated using (public.is_admin());
+create policy "Super admins manage profiles" on public.profiles for all to authenticated using (public.is_super_admin()) with check (public.is_super_admin());
 
 create policy "Public read active brands" on public.brands for select to anon, authenticated using (is_active or public.is_admin());
 create policy "Admins manage brands" on public.brands for all to authenticated using (public.is_admin()) with check (public.is_admin());
