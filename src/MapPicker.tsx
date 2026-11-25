@@ -29,6 +29,7 @@ export default function MapPicker({ initial, onConfirm, onClose }: {
       style: 'https://tiles.openfreemap.org/styles/liberty',
       center: [initial.longitude, initial.latitude],
       zoom: 16,
+      attributionControl: { compact: true },
     });
     map.current = instance;
     marker.current = new Marker({ color: '#087c34', draggable: true })
