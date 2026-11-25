@@ -4,7 +4,7 @@ import { ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search,
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import AdminDashboard from './AdminDashboard';
 
-type Product = { id: string; category_id?: string | null; name: string; price: number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
+type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
 
 const categoryIcons = [Milk, Leaf, IceCream, Milk];
@@ -55,7 +55,7 @@ export default function App() {
     if (!supabase) return;
     let alive = true;
     Promise.all([
-      supabase.from('products').select('id,category_id,name,price,mrp,image_urls,variant_label,unit,brands(name)').eq('is_available', true).gt('stock_quantity', 0).order('sort_order'),
+      supabase.from('products').select('id,category_id,name,price,mrp,stock_quantity,image_urls,variant_label,unit,brands(name)').eq('is_available', true).gt('stock_quantity', 0).order('sort_order'),
       supabase.from('categories').select('id,name').eq('is_active', true).order('sort_order'),
     ]).then(([productResult, categoryResult]) => {
       if (!alive) return;
@@ -70,8 +70,8 @@ export default function App() {
   const cartProducts = products.filter(p => cart[p.id]);
   const cartSubtotal = cartProducts.reduce((sum,p) => sum + Number(p.price) * (cart[p.id] ?? 0), 0);
   const changeQty = (id:string, delta:number) => setCart(current => {
-    const next={...current}; const qty=(next[id] ?? 0)+delta;
-    if(qty<=0) delete next[id]; else next[id]=qty;
+    const next={...current}; const product=products.find(p=>p.id===id); const qty=(next[id] ?? 0)+delta;
+    if(qty<=0) delete next[id]; else if(product) next[id]=Math.min(qty,product.stock_quantity); 
     return next;
   });
   async function loadOrders() {
@@ -164,7 +164,7 @@ export default function App() {
       {!isSupabaseConfigured && <div className="empty-products"><div className="empty-icon"><ShoppingBag size={25}/></div><h3>We're getting the shop ready</h3><p>Product catalogue and sign-in will become live when the secure shop connection is configured.</p></div>}
       {isSupabaseConfigured && loading && <p className="loading-text">Loading fresh picks…</p>}
       {isSupabaseConfigured && !loading && products.length === 0 && <div className="empty-products"><div className="empty-icon"><ShoppingBag size={25}/></div><h3>Products are coming soon</h3><p>Our team is preparing the catalogue. Check back soon for fresh milk, curd, ice creams and more.</p></div>}
-      {filtered.length > 0 && <div className="product-grid">{filtered.map(product => <article className="product-card" key={product.id}><div className="product-photo">{product.image_urls?.[0] ? <img src={product.image_urls[0]} alt={product.name}/> : <div className="photo-placeholder"><Milk size={35}/></div>}</div><div className="product-info"><small>{product.brands?.[0]?.name ?? 'Sai Sathwika'}</small><h3>{product.name}</h3><p>{[product.variant_label, product.unit].filter(Boolean).join(' · ')}</p><div className="product-bottom"><strong>₹{Number(product.price).toFixed(2)}</strong><button onClick={() => setCart(c => ({...c, [product.id]: (c[product.id] ?? 0) + 1}))}>Add +</button></div></div></article>)}</div>}
+      {filtered.length > 0 && <div className="product-grid">{filtered.map(product => <article className="product-card" key={product.id}><div className="product-photo">{product.image_urls?.[0] ? <img src={product.image_urls[0]} alt={product.name}/> : <div className="photo-placeholder"><Milk size={35}/></div>}</div><div className="product-info"><small>{product.brands?.[0]?.name ?? 'Sai Sathwika'}</small><h3>{product.name}</h3><p>{[product.variant_label, product.unit].filter(Boolean).join(' · ')}</p><div className="product-bottom"><strong>₹{Number(product.price).toFixed(2)}</strong><button onClick={() => changeQty(product.id,1)} disabled={(cart[product.id]??0)>=product.stock_quantity}>{(cart[product.id]??0)>0?'Add more +':'Add +'}</button></div></div></article>)}</div>}
     </section>
 
     <footer><div className="shell footer-inner"><div className="brand footer-brand"><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></div><p>Made with care for your neighbourhood.</p><small>© {new Date().getFullYear()} Sai Sathwika</small></div></footer>
@@ -173,7 +173,7 @@ export default function App() {
       <div className="cart-modal-head"><div><span className="eyebrow">YOUR BASKET</span><h2>Shopping cart <small>({cartCount} items)</small></h2></div><button className="modal-close" onClick={()=>setCartOpen(false)}><X/></button></div>
       {cartProducts.length===0 ? <div className="cart-empty"><ShoppingBag size={34}/><h3>Your cart is empty</h3><p>Add a few favourites to get started.</p><button className="primary" onClick={()=>setCartOpen(false)}>Continue shopping</button></div> :
       <>
-        <div className="cart-lines">{cartProducts.map(p=><article className="cart-line" key={p.id}><div className="cart-thumb">{p.image_urls?.[0]?<img src={p.image_urls[0]} alt=""/>:<Milk/>}</div><div className="cart-line-info"><strong>{p.name}</strong><small>₹{Number(p.price).toFixed(2)} each</small><b>₹{(Number(p.price)*(cart[p.id]??0)).toFixed(2)}</b></div><div className="qty-control"><button onClick={()=>changeQty(p.id,-1)} aria-label="Decrease quantity"><Minus size={14}/></button><b>{cart[p.id]}</b><button onClick={()=>changeQty(p.id,1)} aria-label="Increase quantity"><Plus size={14}/></button></div></article>)}</div>
+        <div className="cart-lines">{cartProducts.map(p=><article className="cart-line" key={p.id}><div className="cart-thumb">{p.image_urls?.[0]?<img src={p.image_urls[0]} alt=""/>:<Milk/>}</div><div className="cart-line-info"><strong>{p.name}</strong><small>₹{Number(p.price).toFixed(2)} each</small><b>₹{(Number(p.price)*(cart[p.id]??0)).toFixed(2)}</b></div><div className="qty-control"><button onClick={()=>changeQty(p.id,-1)} aria-label="Decrease quantity"><Minus size={14}/></button><b>{cart[p.id]}</b><button onClick={()=>changeQty(p.id,1)} aria-label="Increase quantity" disabled={cart[p.id]>=p.stock_quantity}><Plus size={14}/></button></div></article>)}</div>
         <div className="cart-total"><span>Subtotal</span><strong>₹{cartSubtotal.toFixed(2)}</strong></div>
         {!session ? <div className="checkout-signin"><p>Sign in with Google to continue to delivery details and checkout.</p><button className="google-button" onClick={signIn}>Continue with Google</button></div> :
         <div className="checkout-form"><h3>Delivery details</h3>
