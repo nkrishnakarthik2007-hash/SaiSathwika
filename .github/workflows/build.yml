@@ -3,6 +3,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: sai-sathwika-main-build
+  cancel-in-progress: true
+
 jobs:
   web-and-android:
     runs-on: ubuntu-latest
