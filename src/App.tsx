@@ -43,9 +43,20 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+    // Keep the native Android splash visible until React has painted the branded
+    // in-app splash. Hiding it immediately creates a dark/blank WebView flash.
     const dismissTimer = window.setTimeout(() => { if (active) setSplashVisible(false); }, 2100);
-    if (Capacitor.isNativePlatform()) void SplashScreen.hide({ fadeOutDuration: 250 }).catch(() => undefined);
-    return () => { active = false; window.clearTimeout(dismissTimer); };
+    let nativeHideTimer: number | undefined;
+    if (Capacitor.isNativePlatform()) {
+      nativeHideTimer = window.setTimeout(() => {
+        if (active) void SplashScreen.hide({ fadeOutDuration: 450 }).catch(() => undefined);
+      }, 350);
+    }
+    return () => {
+      active = false;
+      window.clearTimeout(dismissTimer);
+      if (nativeHideTimer !== undefined) window.clearTimeout(nativeHideTimer);
+    };
   }, []);
 
   useEffect(() => {
