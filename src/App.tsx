@@ -70,8 +70,8 @@ export default function App() {
     return () => { alive = false; };
   }, []);
 
-  const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
   const cartProducts = products.filter(p => cart[p.id]);
+  const cartCount = cartProducts.reduce((total,p)=>total+(cart[p.id]??0),0);
   const cartSubtotal = cartProducts.reduce((sum,p) => sum + Number(p.price) * (cart[p.id] ?? 0), 0);
   const changeQty = (id:string, delta:number) => setCart(current => {
     const next={...current}; const product=products.find(p=>p.id===id); const qty=(next[id] ?? 0)+delta;
