@@ -3,6 +3,27 @@ import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, Loca
 import { supabase } from './lib/supabase';
 
 type Option = { id: string; name: string };
+
+async function optimizeProductImage(file: File): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const maxDimension = 1600;
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Could not process this image.');
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(result => result ? resolve(result) : reject(new Error('Image compression failed.')), 'image/webp', 0.82);
+    });
+    const baseName = file.name.replace(/\\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '-');
+    return new File([blob], `${baseName || 'product'}.webp`, { type: 'image/webp', lastModified: Date.now() });
+  } finally {
+    bitmap.close();
+  }
+}
 export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   const [brands,setBrands]=useState<Option[]>([]);
   const [categories,setCategories]=useState<Option[]>([]);
@@ -114,10 +135,10 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     try{
       let image_urls:string[]=[];
       if(image){
-        if(image.size>5*1024*1024)throw new Error('Product image must be 5 MB or smaller.');
-        const safe=image.name.replace(/[^a-zA-Z0-9._-]/g,'-');
-        const path=`${crypto.randomUUID()}-${safe}`;
-        const {error:uploadError}=await supabase.storage.from('product-images').upload(path,image,{upsert:false,contentType:image.type});
+        if(image.size>15*1024*1024)throw new Error('Choose a product image smaller than 15 MB.');
+        const optimized=await optimizeProductImage(image);
+        const path=`${crypto.randomUUID()}-${optimized.name}`;
+        const {error:uploadError}=await supabase.storage.from('product-images').upload(path,optimized,{upsert:false,contentType:'image/webp',cacheControl:'31536000'});
         if(uploadError)throw uploadError;
         const {data}=supabase.storage.from('product-images').getPublicUrl(path);
         image_urls=[data.publicUrl];
