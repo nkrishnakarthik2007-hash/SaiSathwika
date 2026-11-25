@@ -22,6 +22,7 @@ export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loginOpen, setLoginOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [storeAccepting,setStoreAccepting]=useState<boolean|null>(null);
   const [notice, setNotice] = useState('');
   const [adminRole, setAdminRole] = useState('customer');
   const [adminView, setAdminView] = useState(false);
@@ -57,10 +58,12 @@ export default function App() {
     Promise.all([
       supabase.from('products').select('id,category_id,name,price,mrp,stock_quantity,image_urls,variant_label,unit,brands(name)').eq('is_available', true).gt('stock_quantity', 0).order('sort_order'),
       supabase.from('categories').select('id,name').eq('is_active', true).order('sort_order'),
-    ]).then(([productResult, categoryResult]) => {
+      supabase.from('store_settings').select('accepting_orders').eq('id',1).maybeSingle(),
+    ]).then(([productResult, categoryResult, storeResult]) => {
       if (!alive) return;
       if (!productResult.error) setProducts((productResult.data ?? []) as Product[]);
       if (!categoryResult.error) setCategories(categoryResult.data ?? []);
+      if (!storeResult.error) setStoreAccepting(storeResult.data?.accepting_orders ?? false);
       setLoading(false);
     });
     return () => { alive = false; };
@@ -94,6 +97,8 @@ export default function App() {
     if(!supabase || !session){setCartOpen(false);setLoginOpen(true);return;}
     if(!cartProducts.length){setNotice('Your cart is empty.');return;}
     if(!address.recipient_name.trim() || !address.phone.trim() || !address.address_line.trim()){setNotice('Enter your name, phone number and delivery address.');return;}
+    const digits=address.phone.replace(/\\D/g,'');
+    if(digits.length<10 || digits.length>13){setNotice('Enter a valid phone number with 10 to 13 digits.');return;}
     if(!coords){setNotice('Capture your delivery location before placing the order.');return;}
     setCheckoutBusy(true);
     try {
@@ -139,7 +144,7 @@ export default function App() {
   if(adminView && ['admin','super_admin'].includes(adminRole)) return <AdminDashboard onBack={()=>setAdminView(false)}/>;
 
   return <main>
-    <div className="announcement">Fresh dairy from your neighbourhood · Free delivery at launch</div>
+    <div className="announcement">{storeAccepting===true?'We are accepting orders · Fresh dairy from your neighbourhood':storeAccepting===false?'Online ordering is not open yet · Browse our products':'Fresh dairy from your neighbourhood · Free delivery at launch'}</div>
     <header className="header shell">
       <a className="brand" href="#"><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></a>
       <div className="location"><MapPin size={17}/><span><small>DELIVERING TO</small><strong>Select your address</strong></span></div>
