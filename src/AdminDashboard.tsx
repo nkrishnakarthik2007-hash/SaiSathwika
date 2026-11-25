@@ -114,7 +114,15 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   }
   async function saveStore(){
     if(!supabase)return;
-    const {error}=await supabase.from('store_settings').update({delivery_radius_km:Number(radius),delivery_fee:Number(deliveryFee),accepting_orders:accepting,store_latitude:storeLat===''?null:Number(storeLat),store_longitude:storeLng===''?null:Number(storeLng)}).eq('id',1);
+    const radiusValue=Number(radius),feeValue=Number(deliveryFee);
+    const latitude=storeLat===''?null:Number(storeLat),longitude=storeLng===''?null:Number(storeLng);
+    if(!Number.isFinite(radiusValue)||radiusValue<=0||radiusValue>100){setMessage('Enter a delivery radius greater than 0 and no more than 100 km.');return;}
+    if(!Number.isFinite(feeValue)||feeValue<0){setMessage('Enter a valid delivery fee of ₹0 or more.');return;}
+    if((latitude===null)!==(longitude===null)){setMessage('Enter both store coordinates, or capture the store location.');return;}
+    if(latitude!==null&&(!Number.isFinite(latitude)||latitude < -90||latitude > 90)){setMessage('Store latitude must be between -90 and 90.');return;}
+    if(longitude!==null&&(!Number.isFinite(longitude)||longitude < -180||longitude > 180)){setMessage('Store longitude must be between -180 and 180.');return;}
+    if(accepting&&(latitude===null||longitude===null)){setMessage('Capture the actual store location before enabling online orders.');return;}
+    const {error}=await supabase.from('store_settings').update({delivery_radius_km:radiusValue,delivery_fee:feeValue,accepting_orders:accepting,store_latitude:latitude,store_longitude:longitude}).eq('id',1);
     setMessage(error?.message??'Store settings saved');
   }
   return <main className="admin-page">
