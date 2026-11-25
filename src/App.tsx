@@ -97,7 +97,7 @@ export default function App() {
     if(!supabase || !session){setCartOpen(false);setLoginOpen(true);return;}
     if(!cartProducts.length){setNotice('Your cart is empty.');return;}
     if(!address.recipient_name.trim() || !address.phone.trim() || !address.address_line.trim()){setNotice('Enter your name, phone number and delivery address.');return;}
-    const digits=address.phone.replace(/\\D/g,'');
+    const digits=address.phone.replace(/\D/g,'');
     if(digits.length<10 || digits.length>13){setNotice('Enter a valid phone number with 10 to 13 digits.');return;}
     if(!coords){setNotice('Capture your delivery location before placing the order.');return;}
     setCheckoutBusy(true);
