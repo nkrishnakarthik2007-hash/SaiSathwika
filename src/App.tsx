@@ -23,6 +23,7 @@ export default function App() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [storeAccepting,setStoreAccepting]=useState<boolean|null>(null);
+  const [deliveryRadius,setDeliveryRadius]=useState(2);
   const [notice, setNotice] = useState('');
   const [adminRole, setAdminRole] = useState('customer');
   const [adminView, setAdminView] = useState(false);
@@ -58,12 +59,12 @@ export default function App() {
     Promise.all([
       supabase.from('products').select('id,category_id,name,price,mrp,stock_quantity,image_urls,variant_label,unit,brands(name)').eq('is_available', true).gt('stock_quantity', 0).order('sort_order'),
       supabase.from('categories').select('id,name').eq('is_active', true).order('sort_order'),
-      supabase.from('store_settings').select('accepting_orders').eq('id',1).maybeSingle(),
+      supabase.from('store_settings').select('accepting_orders,delivery_radius_km').eq('id',1).maybeSingle(),
     ]).then(([productResult, categoryResult, storeResult]) => {
       if (!alive) return;
       if (!productResult.error) setProducts((productResult.data ?? []) as Product[]);
       if (!categoryResult.error) setCategories(categoryResult.data ?? []);
-      if (!storeResult.error) setStoreAccepting(storeResult.data?.accepting_orders ?? false);
+      if (!storeResult.error) { setStoreAccepting(storeResult.data?.accepting_orders ?? false); setDeliveryRadius(Number(storeResult.data?.delivery_radius_km ?? 2)); }
       setLoading(false);
     });
     return () => { alive = false; };
@@ -166,7 +167,7 @@ export default function App() {
     </section>
 
     <section className="benefits shell">
-      <div><MapPin/><span><strong>Neighbourhood delivery</strong><small>2 km service area to start</small></span></div>
+      <div><MapPin/><span><strong>Neighbourhood delivery</strong><small>Within {deliveryRadius} km of our store</small></span></div>
       <div><Clock3/><span><strong>Easy ordering</strong><small>Order in just a few taps</small></span></div>
       <div><ShieldCheck/><span><strong>Trusted local store</strong><small>Personal service, every time</small></span></div>
     </section>
