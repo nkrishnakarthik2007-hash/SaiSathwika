@@ -61,7 +61,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   async function adjustStock(id:string,current:number,delta:number){
     if(!supabase)return;
     const next=Math.max(0,current+delta);
-    const {error}=await supabase.from('products').update({stock_quantity:next,is_available:next>0}).eq('id',id);
+    const {error}=await supabase.from('products').update({stock_quantity:next}).eq('id',id);
     if(error)setMessage(error.message);else{setMessage('Stock updated.');void refresh();}
   }
   async function toggleProduct(id:string,available:boolean){
@@ -140,7 +140,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         </div>
       </div>
       <section className="admin-card inventory"><h2><ClipboardList/> Customer orders</h2>{ordersBusy?<p className="admin-hint">Loading orders…</p>:orders.length===0?<p className="admin-hint">No customer orders yet.</p>:orders.map(o=><article className="admin-order-row" key={o.id}><div className="admin-order-main"><strong>Order #{o.order_number}</strong><small>{o.profiles?.full_name??o.delivery_address_snapshot?.recipient_name??"Customer"} · {new Date(o.created_at).toLocaleString()}</small><small>{(o.order_items??[]).map((i:any)=>i.product_name_snapshot+" × "+i.quantity).join(", ")}</small><small>{o.delivery_address_snapshot?.address_line??"Address unavailable"}</small></div><div className="admin-order-actions"><b>₹{Number(o.total).toFixed(2)}</b><select aria-label={"Status for order "+o.order_number} value={o.status} onChange={e=>void updateOrderStatus(o.id,e.target.value)}>{["placed","confirmed","preparing","out_for_delivery","delivered","cancelled"].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div></article>)}</section>
-      <section className="admin-card inventory"><h2>Product inventory</h2>{products.length===0?<p className="admin-hint">No products yet. Add your first product above.</p>:products.map(p=><div className="inventory-row" key={p.id}><span><strong>{p.name}</strong><small>{p.brands?.[0]?.name??'No brand'} · {p.is_available?'Visible in shop':'Hidden from shop'}</small></span><b>₹{Number(p.price).toFixed(2)}</b><div className="stock-actions"><small>{p.stock_quantity} in stock</small><button type="button" title="Add one unit" onClick={()=>void adjustStock(p.id,p.stock_quantity,1)}>+1</button><button type="button" title={p.is_available?'Hide product':'Show product'} onClick={()=>void toggleProduct(p.id,p.is_available)}>{p.is_available?'Hide':'Show'}</button></div></div>)}</section>
+      <section className="admin-card inventory"><h2>Product inventory</h2>{products.length===0?<p className="admin-hint">No products yet. Add your first product above.</p>:products.map(p=><div className="inventory-row" key={p.id}><span><strong>{p.name}</strong><small>{p.brands?.[0]?.name??'No brand'} · {p.is_available?'Visible in shop':'Hidden from shop'}</small></span><b>₹{Number(p.price).toFixed(2)}</b><div className="stock-actions"><small>{p.stock_quantity} in stock</small><button type="button" title="Remove one unit" disabled={p.stock_quantity<=0} onClick={()=>void adjustStock(p.id,p.stock_quantity,-1)}>−1</button><button type="button" title="Add one unit" onClick={()=>void adjustStock(p.id,p.stock_quantity,1)}>+1</button><button type="button" title={p.is_available?'Hide product':'Show product'} onClick={()=>void toggleProduct(p.id,p.is_available)}>{p.is_available?'Hide':'Show'}</button></div></div>)}</section>
     </section>
   </main>;
 }
