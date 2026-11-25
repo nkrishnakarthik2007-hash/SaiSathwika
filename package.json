@@ -18,12 +18,15 @@
     "react-dom": "latest",
     "lucide-react": "latest",
     "@capacitor/core": "latest",
-    "@supabase/supabase-js": "^2.86.0"
+    "@supabase/supabase-js": "^2.86.0",
+    "@capacitor/splash-screen": "latest"
   },
   "devDependencies": {
     "@capacitor/cli": "latest",
     "@capacitor/android": "latest",
     "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "@types/react-dom": "latest",
+    "@capacitor/assets": "latest",
+    "sharp": "latest"
   }
 }
