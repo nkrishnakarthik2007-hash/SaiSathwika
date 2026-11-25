@@ -69,9 +69,11 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     const {error}=await supabase.from('products').update({is_available:!available}).eq('id',id);
     if(error)setMessage(error.message);else{setMessage('Product visibility updated.');void refresh();}
   }
-  async function updateOrderStatus(id:string,status:string){
+  async function updateOrderStatus(id:string,currentStatus:string,status:string){
     if(!supabase)return;
-    const {error}=await supabase.from('orders').update({status}).eq('id',id);
+    const allowed:Record<string,string[]>={placed:['confirmed','cancelled'],confirmed:['preparing','cancelled'],preparing:['out_for_delivery','cancelled'],out_for_delivery:['delivered','cancelled'],delivered:[],cancelled:[]};
+    if(!allowed[currentStatus]?.includes(status)){setMessage('This order status change is not allowed.');return;}
+    const {error}=await supabase.from('orders').update({status}).eq('id',id).eq('status',currentStatus);
     if(error)setMessage(error.message);else{setMessage('Order status updated.');void refreshOrders();}
   }
   async function addBrand(){
@@ -98,10 +100,13 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         const {data}=supabase.storage.from('product-images').getPublicUrl(path);
         image_urls=[data.publicUrl];
       }
-      if(mrp && Number(mrp)<Number(price))throw new Error('MRP cannot be lower than the selling price.');
+      const priceValue=Number(price),stockValue=Number(stock),mrpValue=mrp===''?null:Number(mrp);
+      if(!Number.isFinite(priceValue)||priceValue<=0)throw new Error('Enter a valid selling price greater than ₹0.');
+      if(!Number.isInteger(stockValue)||stockValue<0)throw new Error('Stock quantity must be a whole number of 0 or more.');
+      if(mrpValue!==null&&(!Number.isFinite(mrpValue)||mrpValue<priceValue))throw new Error('MRP must be valid and cannot be lower than the selling price.');
       const {error}=await supabase.from('products').insert({
         name:name.trim(),brand_id:brand||null,category_id:category||null,
-        price:Number(price),mrp:mrp?Number(mrp):null,stock_quantity:Number(stock),
+        price:priceValue,mrp:mrpValue,stock_quantity:stockValue,
         variant_label:variant||null,unit:unit||null,description:description||null,
         image_urls,is_available:true
       });
@@ -129,14 +134,14 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     <header className="admin-top"><button onClick={onBack}><ArrowLeft size={17}/> Storefront</button><div><ShieldCheck size={19}/> Sai Sathwika · Admin</div></header>
     <section className="admin-shell">
       <div className="admin-heading"><span className="eyebrow">STORE CONTROL CENTRE</span><h1>Good morning, Admin.</h1><p>Manage products, brands, categories and delivery settings.</p></div>
-      <div className="admin-stats"><article><PackagePlus/><strong>{products.length}</strong><span>Products</span></article><article><Tags/><strong>{brands.length}</strong><span>Brands</span></article><article><Store/><strong>{categories.length}</strong><span>Categories</span></article></div>
+      <div className="admin-stats"><article><PackagePlus/><strong>{products.length}</strong><span>Products</span></article><article><PackagePlus/><strong>{products.filter(p=>p.stock_quantity<=5).length}</strong><span>Low stock (5 or less)</span></article><article><Tags/><strong>{brands.length}</strong><span>Brands</span></article><article><Store/><strong>{categories.length}</strong><span>Categories</span></article></div>
       {message&&<div className="admin-message">{message}</div>}
       <div className="admin-columns">
         <section className="admin-card"><h2><PackagePlus/> Add a product</h2><form onSubmit={addProduct} className="admin-form">
           <label>Product name<input required value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Heritage Toned Milk"/></label>
           <div className="admin-two"><label>Brand<select value={brand} onChange={e=>setBrand(e.target.value)}><option value="">Select brand</option>{brands.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><label>Category<select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Select category</option>{categories.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label></div>
           <div className="admin-two"><label>Selling price (₹)<input required type="number" min="0" step=".01" value={price} onChange={e=>setPrice(e.target.value)}/></label><label>MRP (₹)<input type="number" min="0" step=".01" value={mrp} onChange={e=>setMrp(e.target.value)}/></label></div>
-          <div className="admin-two"><label>Stock quantity<input type="number" min="0" value={stock} onChange={e=>setStock(e.target.value)}/></label><label>Pack size / variant<input value={variant} onChange={e=>setVariant(e.target.value)} placeholder="500 ml"/></label></div>
+          <div className="admin-two"><label>Stock quantity<input type="number" min="0" step="1" value={stock} onChange={e=>setStock(e.target.value)}/></label><label>Pack size / variant<input value={variant} onChange={e=>setVariant(e.target.value)} placeholder="500 ml"/></label></div>
           <label>Unit<input value={unit} onChange={e=>setUnit(e.target.value)} placeholder="packet, tub, bottle"/></label>
           <label>Description<textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Short product description"/></label>
           <label className="image-upload"><ImagePlus size={21}/><span>{image?image.name:'Add product image (JPG, PNG, WebP)'}</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setImage(e.target.files?.[0]??null)}/></label>
@@ -147,8 +152,8 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
           <section className="admin-card"><h2><Store/> Delivery settings</h2><label className="admin-label">Delivery radius (km)<input type="number" min=".5" max="100" step=".5" value={radius} onChange={e=>setRadius(e.target.value)}/></label><label className="admin-label">Delivery fee (₹)<input type="number" min="0" value={deliveryFee} onChange={e=>setDeliveryFee(e.target.value)}/></label><div className="admin-two"><label>Store latitude<input type="number" step="any" value={storeLat} onChange={e=>setStoreLat(e.target.value)} placeholder="17.0000"/></label><label>Store longitude<input type="number" step="any" value={storeLng} onChange={e=>setStoreLng(e.target.value)} placeholder="78.0000"/></label></div><button type="button" className="admin-location-button" onClick={captureStoreLocation} disabled={storeLocationBusy}><LocateFixed size={16}/>{storeLocationBusy?"Getting location…":"Use this device to set store location"}</button><p className="admin-hint">Capture this while you are physically at the store. Required to verify customer delivery distance.</p><label className="admin-check"><input type="checkbox" checked={accepting} onChange={e=>setAccepting(e.target.checked)}/> Accepting orders</label><button className="admin-submit" onClick={saveStore}>Save store settings</button></section>
         </div>
       </div>
-      <section className="admin-card inventory"><h2><ClipboardList/> Customer orders</h2>{ordersBusy?<p className="admin-hint">Loading orders…</p>:orders.length===0?<p className="admin-hint">No customer orders yet.</p>:orders.map(o=><article className="admin-order-row" key={o.id}><div className="admin-order-main"><strong>Order #{o.order_number}</strong><small>{o.profiles?.full_name??o.delivery_address_snapshot?.recipient_name??"Customer"} · {new Date(o.created_at).toLocaleString()}</small><small>{(o.order_items??[]).map((i:any)=>i.product_name_snapshot+" × "+i.quantity).join(", ")}</small><small>{o.delivery_address_snapshot?.address_line??"Address unavailable"}</small></div><div className="admin-order-actions"><b>₹{Number(o.total).toFixed(2)}</b><select aria-label={"Status for order "+o.order_number} value={o.status} onChange={e=>void updateOrderStatus(o.id,e.target.value)}>{["placed","confirmed","preparing","out_for_delivery","delivered","cancelled"].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div></article>)}</section>
-      <section className="admin-card inventory"><h2>Product inventory</h2>{products.length===0?<p className="admin-hint">No products yet. Add your first product above.</p>:products.map(p=><div className="inventory-row" key={p.id}><span><strong>{p.name}</strong><small>{p.brands?.[0]?.name??'No brand'} · {p.is_available?'Visible in shop':'Hidden from shop'}</small></span><b>₹{Number(p.price).toFixed(2)}</b><div className="stock-actions"><small>{p.stock_quantity} in stock</small><button type="button" title="Remove one unit" disabled={p.stock_quantity<=0} onClick={()=>void adjustStock(p.id,p.stock_quantity,-1)}>−1</button><button type="button" title="Add one unit" onClick={()=>void adjustStock(p.id,p.stock_quantity,1)}>+1</button><button type="button" title={p.is_available?'Hide product':'Show product'} onClick={()=>void toggleProduct(p.id,p.is_available)}>{p.is_available?'Hide':'Show'}</button></div></div>)}</section>
+      <section className="admin-card inventory"><h2><ClipboardList/> Customer orders</h2>{ordersBusy?<p className="admin-hint">Loading orders…</p>:orders.length===0?<p className="admin-hint">No customer orders yet.</p>:orders.map(o=><article className="admin-order-row" key={o.id}><div className="admin-order-main"><strong>Order #{o.order_number}</strong><small>{o.profiles?.full_name??o.delivery_address_snapshot?.recipient_name??"Customer"} · {new Date(o.created_at).toLocaleString()}</small><small>{(o.order_items??[]).map((i:any)=>i.product_name_snapshot+" × "+i.quantity).join(", ")}</small><small>{o.delivery_address_snapshot?.address_line??"Address unavailable"}</small></div><div className="admin-order-actions"><b>₹{Number(o.total).toFixed(2)}</b><select aria-label={"Status for order "+o.order_number} value={o.status} disabled={o.status==='delivered'||o.status==='cancelled'} onChange={e=>void updateOrderStatus(o.id,o.status,e.target.value)}>{["placed","confirmed","preparing","out_for_delivery","delivered","cancelled"].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div></article>)}</section>
+      <section className="admin-card inventory"><h2>Product inventory</h2>{products.length===0?<p className="admin-hint">No products yet. Add your first product above.</p>:products.map(p=><div className="inventory-row" key={p.id}><span><strong>{p.name}</strong><small>{p.brands?.[0]?.name??'No brand'} · {p.is_available?'Visible in shop':'Hidden from shop'}</small></span><b>₹{Number(p.price).toFixed(2)}</b><div className="stock-actions"><small>{p.stock_quantity} in stock {p.stock_quantity===0?'· Out of stock':p.stock_quantity<=5?'· Low stock':''}</small><button type="button" title="Remove one unit" disabled={p.stock_quantity<=0} onClick={()=>void adjustStock(p.id,p.stock_quantity,-1)}>−1</button><button type="button" title="Add one unit" onClick={()=>void adjustStock(p.id,p.stock_quantity,1)}>+1</button><button type="button" title={p.is_available?'Hide product':'Show product'} onClick={()=>void toggleProduct(p.id,p.is_available)}>{p.is_available?'Hide':'Show'}</button></div></div>)}</section>
     </section>
   </main>;
 }
