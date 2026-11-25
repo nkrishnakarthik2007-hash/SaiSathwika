@@ -43,7 +43,7 @@ export default function App() {
   useEffect(() => {
     if (!supabase) { setLoading(false); return; }
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); if(data.session) void loadRole(data.session.user.id); });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => { setSession(next); if(next) void loadRole(next.user.id); else { setAdminRole('customer'); setAdminView(false); } });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => { setSession(next); if(next) { Promise.resolve().then(()=>loadRole(next.user.id)); } else { setAdminRole('customer'); setAdminView(false); } });
     return () => listener.subscription.unsubscribe();
   }, []);
 
@@ -95,6 +95,7 @@ export default function App() {
     },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
   }
   async function placeOrder() {
+    if(storeAccepting===false){setNotice('Online ordering is currently closed. Please check back later.');return;}
     if(!supabase || !session){setCartOpen(false);setLoginOpen(true);return;}
     if(!cartProducts.length){setNotice('Your cart is empty.');return;}
     if(!address.recipient_name.trim() || !address.phone.trim() || !address.address_line.trim()){setNotice('Enter your name, phone number and delivery address.');return;}
@@ -202,8 +203,8 @@ export default function App() {
           <label>Landmark (optional)<input value={address.landmark} onChange={e=>setAddress(a=>({...a,landmark:e.target.value}))} placeholder="Nearby landmark"/></label>
           <button className={coords?'location-captured':'location-button'} onClick={captureLocation} disabled={locationBusy}><LocateFixed size={17}/>{locationBusy?'Getting location…':coords?'Delivery location captured':'Use my current location'}</button>
           <label>Note for the store (optional)<textarea value={customerNote} onChange={e=>setCustomerNote(e.target.value)} placeholder="Any delivery instructions?"/></label>
-          <button className="place-order-button" onClick={placeOrder} disabled={checkoutBusy}>{checkoutBusy?'Placing order…': 'Place order · ₹'+cartSubtotal.toFixed(2)}</button>
-          <small className="checkout-footnote">Cash on delivery. Final delivery eligibility and charges are verified securely by the store.</small>
+          <button className="place-order-button" onClick={placeOrder} disabled={checkoutBusy || storeAccepting===false}>{checkoutBusy?'Placing order…':storeAccepting===false?'Ordering currently closed':'Place order · ₹'+cartSubtotal.toFixed(2)}</button>
+          <small className="checkout-footnote">{storeAccepting===false?'This store is not accepting online orders right now. Your cart will be saved.':'Cash on delivery. Final delivery eligibility and charges are verified securely by the store.'}</small>
         </div>}
       </>}
     </section></div>}
