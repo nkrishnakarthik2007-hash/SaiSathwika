@@ -13,7 +13,10 @@ const fallbackCategories = ['Milk & Varieties', 'Curd & Buttermilk', 'Ice Creams
 export default function App() {
   const [query, setQuery] = useState('');
   const [activeCategory,setActiveCategory]=useState<string|null>(null);
-  const [cart, setCart] = useState<Record<string, number>>({});
+  const [cart, setCart] = useState<Record<string, number>>(() => {
+    try { const saved=localStorage.getItem('sai-sathwika-cart'); return saved ? JSON.parse(saved) as Record<string,number> : {}; }
+    catch { return {}; }
+  });
   const [session, setSession] = useState<Session | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -30,6 +33,10 @@ export default function App() {
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [customerNote, setCustomerNote] = useState('');
+
+  useEffect(() => {
+    try { localStorage.setItem('sai-sathwika-cart',JSON.stringify(cart)); } catch { /* storage may be unavailable */ }
+  }, [cart]);
 
   useEffect(() => {
     if (!supabase) { setLoading(false); return; }
