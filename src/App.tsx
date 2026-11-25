@@ -97,14 +97,26 @@ export default function App() {
     if(!coords){setNotice('Capture your delivery location before placing the order.');return;}
     setCheckoutBusy(true);
     try {
-      const {data:addressRow,error:addressError}=await supabase.from('customer_addresses').insert({
-        customer_id:session.user.id,label:'Home',recipient_name:address.recipient_name.trim(),phone:address.phone.trim(),
-        address_line:address.address_line.trim(),landmark:address.landmark.trim()||null,
-        latitude:coords.latitude,longitude:coords.longitude,is_default:true
-      }).select('id').single();
-      if(addressError) throw addressError;
+      const {data:existingAddresses,error:lookupError}=await supabase.from('customer_addresses').select('id,recipient_name,phone,address_line,landmark,latitude,longitude').eq('customer_id',session.user.id).eq('address_line',address.address_line.trim()).eq('phone',address.phone.trim()).limit(1);
+      if(lookupError) throw lookupError;
+      let addressId=existingAddresses?.[0]?.id as string|undefined;
+      if(addressId){
+        const {error:updateAddressError}=await supabase.from('customer_addresses').update({
+          recipient_name:address.recipient_name.trim(),landmark:address.landmark.trim()||null,
+          latitude:coords.latitude,longitude:coords.longitude
+        }).eq('id',addressId);
+        if(updateAddressError) throw updateAddressError;
+      } else {
+        const {data:addressRow,error:addressError}=await supabase.from('customer_addresses').insert({
+          customer_id:session.user.id,label:'Home',recipient_name:address.recipient_name.trim(),phone:address.phone.trim(),
+          address_line:address.address_line.trim(),landmark:address.landmark.trim()||null,
+          latitude:coords.latitude,longitude:coords.longitude,is_default:true
+        }).select('id').single();
+        if(addressError) throw addressError;
+        addressId=addressRow.id;
+      }
       const items=cartProducts.map(p=>({product_id:p.id,quantity:cart[p.id]}));
-      const {data,error}=await supabase.rpc('place_order',{p_items:items,p_address_id:addressRow.id,p_customer_note:customerNote.trim()||null});
+      const {data,error}=await supabase.rpc('place_order',{p_items:items,p_address_id:addressId,p_customer_note:customerNote.trim()||null});
       if(error) throw error;
       const result=Array.isArray(data)?data[0]:data;
       setCart({}); setCartOpen(false); setCustomerNote('');
