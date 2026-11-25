@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search, ShieldCheck, ShoppingBag, UserRound, X } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
+import AdminDashboard from './AdminDashboard';
 
 type Product = { id: string; name: string; price: number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
@@ -18,13 +19,21 @@ export default function App() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
+  const [adminRole, setAdminRole] = useState('customer');
+  const [adminView, setAdminView] = useState(false);
 
   useEffect(() => {
     if (!supabase) { setLoading(false); return; }
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    supabase.auth.getSession().then(({ data }) => { setSession(data.session); if(data.session) void loadRole(data.session.user.id); });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => { setSession(next); if(next) void loadRole(next.user.id); else { setAdminRole('customer'); setAdminView(false); } });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  async function loadRole(userId: string) {
+    if(!supabase)return;
+    const {data}=await supabase.from('profiles').select('role').eq('id',userId).maybeSingle();
+    setAdminRole(data?.role ?? 'customer');
+  }
 
   useEffect(() => {
     if (!supabase) return;
@@ -53,6 +62,8 @@ export default function App() {
     if (error) setNotice(error.message);
   }
 
+  if(adminView && ['admin','super_admin','staff'].includes(adminRole)) return <AdminDashboard onBack={()=>setAdminView(false)}/>;
+
   return <main>
     <div className="announcement">Fresh dairy from your neighbourhood · Free delivery at launch</div>
     <header className="header shell">
@@ -60,6 +71,7 @@ export default function App() {
       <div className="location"><MapPin size={17}/><span><small>DELIVERING TO</small><strong>Select your address</strong></span></div>
       <div className="header-actions">
         <button className="account" onClick={() => session ? supabase?.auth.signOut() : setLoginOpen(true)}><UserRound size={17}/>{session ? 'Sign out' : 'Sign in'}</button>
+        {['admin','super_admin','staff'].includes(adminRole) && <button className="account" onClick={()=>setAdminView(true)}><ShieldCheck size={17}/> Admin</button>}
         <button className="cart" onClick={() => setNotice('Cart is ready for the checkout feature.')}><ShoppingBag size={19}/> Cart <b>{cartCount}</b></button>
       </div>
     </header>
