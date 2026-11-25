@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck } from 'lucide-react';
+import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 type Option = { id: string; name: string };
@@ -26,6 +26,9 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   const [accepting,setAccepting]=useState(false);
   const [storeLat,setStoreLat]=useState('');
   const [storeLng,setStoreLng]=useState('');
+  const [storeLocationBusy,setStoreLocationBusy]=useState(false);
+  const [orders,setOrders]=useState<any[]>([]);
+  const [ordersBusy,setOrdersBusy]=useState(false);
 
   async function refresh(){
     if(!supabase)return;
@@ -38,7 +41,28 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     setBrands(b.data??[]);setCategories(c.data??[]);setProducts(p.data??[]);
     if(s.data){setRadius(String(s.data.delivery_radius_km));setDeliveryFee(String(s.data.delivery_fee));setAccepting(s.data.accepting_orders);setStoreLat(s.data.store_latitude==null?'':String(s.data.store_latitude));setStoreLng(s.data.store_longitude==null?'':String(s.data.store_longitude));}
   }
-  useEffect(()=>{void refresh()},[]);
+  async function refreshOrders(){
+    if(!supabase)return;
+    setOrdersBusy(true);
+    const {data,error}=await supabase.from('orders').select('id,order_number,status,total,created_at,customer_id,delivery_address_snapshot,profiles(full_name,phone),order_items(product_name_snapshot,quantity)').order('created_at',{ascending:false}).limit(50);
+    if(error)setMessage(error.message);else setOrders(data??[]);
+    setOrdersBusy(false);
+  }
+  useEffect(()=>{void refresh();void refreshOrders()},[]);
+  function captureStoreLocation(){
+    if(!navigator.geolocation){setMessage('Location is not supported on this device.');return;}
+    setStoreLocationBusy(true);
+    navigator.geolocation.getCurrentPosition(pos=>{
+      setStoreLat(String(pos.coords.latitude));setStoreLng(String(pos.coords.longitude));
+      setStoreLocationBusy(false);setMessage('Store location captured. Save settings to apply it.');
+    },err=>{setStoreLocationBusy(false);setMessage(err.code===1?'Allow location access to capture the store location.':'Could not get location. Try again.');},
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0});
+  }
+  async function updateOrderStatus(id:string,status:string){
+    if(!supabase)return;
+    const {error}=await supabase.from('orders').update({status}).eq('id',id);
+    if(error)setMessage(error.message);else{setMessage('Order status updated.');void refreshOrders();}
+  }
   async function addBrand(){
     if(!supabase||!newBrand.trim())return;
     const {error}=await supabase.from('brands').insert({name:newBrand.trim()});
@@ -55,6 +79,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     try{
       let image_urls:string[]=[];
       if(image){
+        if(image.size>5*1024*1024)throw new Error('Product image must be 5 MB or smaller.');
         const safe=image.name.replace(/[^a-zA-Z0-9._-]/g,'-');
         const path=`${crypto.randomUUID()}-${safe}`;
         const {error:uploadError}=await supabase.storage.from('product-images').upload(path,image,{upsert:false,contentType:image.type});
@@ -62,6 +87,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         const {data}=supabase.storage.from('product-images').getPublicUrl(path);
         image_urls=[data.publicUrl];
       }
+      if(mrp && Number(mrp)<Number(price))throw new Error('MRP cannot be lower than the selling price.');
       const {error}=await supabase.from('products').insert({
         name:name.trim(),brand_id:brand||null,category_id:category||null,
         price:Number(price),mrp:mrp?Number(mrp):null,stock_quantity:Number(stock),
@@ -99,9 +125,10 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         </form></section>
         <div className="admin-side">
           <section className="admin-card"><h2><Tags/> Brands & categories</h2><div className="inline-add"><input value={newBrand} onChange={e=>setNewBrand(e.target.value)} placeholder="New brand name"/><button onClick={addBrand}>Add</button></div><div className="inline-add"><input value={newCategory} onChange={e=>setNewCategory(e.target.value)} placeholder="New category"/><button onClick={addCategory}>Add</button></div><p className="admin-hint">Add a brand once, then select it for each product. This keeps the catalogue organised.</p></section>
-          <section className="admin-card"><h2><Store/> Delivery settings</h2><label className="admin-label">Delivery radius (km)<input type="number" min=".5" max="100" step=".5" value={radius} onChange={e=>setRadius(e.target.value)}/></label><label className="admin-label">Delivery fee (₹)<input type="number" min="0" value={deliveryFee} onChange={e=>setDeliveryFee(e.target.value)}/></label><div className="admin-two"><label>Store latitude<input type="number" step="any" value={storeLat} onChange={e=>setStoreLat(e.target.value)} placeholder="17.0000"/></label><label>Store longitude<input type="number" step="any" value={storeLng} onChange={e=>setStoreLng(e.target.value)} placeholder="78.0000"/></label></div><p className="admin-hint">Required to calculate whether a customer address is inside your delivery radius.</p><label className="admin-check"><input type="checkbox" checked={accepting} onChange={e=>setAccepting(e.target.checked)}/> Accepting orders</label><button className="admin-submit" onClick={saveStore}>Save store settings</button></section>
+          <section className="admin-card"><h2><Store/> Delivery settings</h2><label className="admin-label">Delivery radius (km)<input type="number" min=".5" max="100" step=".5" value={radius} onChange={e=>setRadius(e.target.value)}/></label><label className="admin-label">Delivery fee (₹)<input type="number" min="0" value={deliveryFee} onChange={e=>setDeliveryFee(e.target.value)}/></label><div className="admin-two"><label>Store latitude<input type="number" step="any" value={storeLat} onChange={e=>setStoreLat(e.target.value)} placeholder="17.0000"/></label><label>Store longitude<input type="number" step="any" value={storeLng} onChange={e=>setStoreLng(e.target.value)} placeholder="78.0000"/></label></div><button type="button" className="admin-location-button" onClick={captureStoreLocation} disabled={storeLocationBusy}><LocateFixed size={16}/>{storeLocationBusy?"Getting location…":"Use this device to set store location"}</button><p className="admin-hint">Capture this while you are physically at the store. Required to verify customer delivery distance.</p><label className="admin-check"><input type="checkbox" checked={accepting} onChange={e=>setAccepting(e.target.checked)}/> Accepting orders</label><button className="admin-submit" onClick={saveStore}>Save store settings</button></section>
         </div>
       </div>
+      <section className="admin-card inventory"><h2><ClipboardList/> Customer orders</h2>{ordersBusy?<p className="admin-hint">Loading orders…</p>:orders.length===0?<p className="admin-hint">No customer orders yet.</p>:orders.map(o=><article className="admin-order-row" key={o.id}><div className="admin-order-main"><strong>Order #{o.order_number}</strong><small>{o.profiles?.full_name??o.delivery_address_snapshot?.recipient_name??"Customer"} · {new Date(o.created_at).toLocaleString()}</small><small>{(o.order_items??[]).map((i:any)=>i.product_name_snapshot+" × "+i.quantity).join(", ")}</small><small>{o.delivery_address_snapshot?.address_line??"Address unavailable"}</small></div><div className="admin-order-actions"><b>₹{Number(o.total).toFixed(2)}</b><select aria-label={"Status for order "+o.order_number} value={o.status} onChange={e=>void updateOrderStatus(o.id,e.target.value)}>{["placed","confirmed","preparing","out_for_delivery","delivered","cancelled"].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div></article>)}</section>
       <section className="admin-card inventory"><h2>Product inventory</h2>{products.length===0?<p className="admin-hint">No products yet. Add your first product above.</p>:products.map(p=><div className="inventory-row" key={p.id}><span><strong>{p.name}</strong><small>{p.brands?.[0]?.name??'No brand'}</small></span><b>₹{Number(p.price).toFixed(2)}</b><small>{p.stock_quantity} in stock</small></div>)}</section>
     </section>
   </main>;
