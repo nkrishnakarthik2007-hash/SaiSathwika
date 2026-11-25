@@ -26,7 +26,7 @@ async function optimizeProductImage(file: File): Promise<File> {
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(result => result ? resolve(result) : reject(new Error('Image compression failed.')), 'image/webp', 0.82);
     });
-    const baseName = file.name.replace(/\\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '-');
+    const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '-');
     return new File([blob], `${baseName || 'product'}.webp`, { type: 'image/webp', lastModified: Date.now() });
   } finally {
     bitmap.close();
@@ -64,13 +64,14 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   const [editMrp,setEditMrp]=useState('');
   const [editStock,setEditStock]=useState('');
   const [editBusy,setEditBusy]=useState(false);
+  const [editImage,setEditImage]=useState<File|null>(null);
 
   async function refresh(){
     if(!supabase)return;
     const [b,c,p,s]=await Promise.all([
       supabase.from('brands').select('id,name').eq('is_active',true).order('name'),
       supabase.from('categories').select('id,name').eq('is_active',true).order('sort_order'),
-      supabase.from('products').select('id,name,price,mrp,stock_quantity,is_available,brands(name)').order('created_at',{ascending:false}),
+      supabase.from('products').select('id,name,price,mrp,stock_quantity,is_available,image_urls,brands(name)').order('created_at',{ascending:false}),
       supabase.from('store_settings').select('delivery_radius_km,delivery_fee,accepting_orders,store_latitude,store_longitude').eq('id',1).single()
     ]);
     setBrands(b.data??[]);setCategories(c.data??[]);setProducts(p.data??[]);
@@ -100,7 +101,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     if(error)setMessage(error.message);else{setMessage('Stock updated.');void refresh();}
   }
   function beginEdit(product:any){
-    setEditingId(product.id);setEditName(product.name);setEditPrice(String(product.price));
+    setEditingId(product.id);setEditImage(null);setEditName(product.name);setEditPrice(String(product.price));
     setEditMrp(product.mrp==null?'':String(product.mrp));setEditStock(String(product.stock_quantity));
   }
   async function saveProductEdit(id:string){
@@ -111,9 +112,31 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     if(!Number.isInteger(stockValue)||stockValue<0){setMessage('Stock must be a whole number of 0 or more.');return;}
     if(mrpValue!==null&&(!Number.isFinite(mrpValue)||mrpValue<priceValue)){setMessage('MRP must be valid and cannot be lower than the selling price.');return;}
     setEditBusy(true);
-    const {error}=await supabase.from('products').update({name:editName.trim(),price:priceValue,mrp:mrpValue,stock_quantity:stockValue}).eq('id',id);
-    setEditBusy(false);
-    if(error)setMessage(error.message);else{setMessage('Product details updated.');setEditingId(null);void refresh();}
+    try{
+      const product=products.find(p=>p.id===id);
+      let imageUrls:string[]=product?.image_urls??[];
+      let uploadedPath:string|null=null;
+      if(editImage){
+        if(editImage.size>15*1024*1024)throw new Error('Choose a product image smaller than 15 MB.');
+        const optimized=await optimizeProductImage(editImage);
+        uploadedPath=`${crypto.randomUUID()}-${optimized.name}`;
+        const {error:uploadError}=await supabase.storage.from('product-images').upload(uploadedPath,optimized,{upsert:false,contentType:'image/webp',cacheControl:'31536000'});
+        if(uploadError)throw uploadError;
+        const {data}=supabase.storage.from('product-images').getPublicUrl(uploadedPath);
+        imageUrls=[data.publicUrl];
+      }
+      const {error}=await supabase.from('products').update({name:editName.trim(),price:priceValue,mrp:mrpValue,stock_quantity:stockValue,...(editImage?{image_urls:imageUrls}:{})}).eq('id',id);
+      if(error){
+        if(uploadedPath)await supabase.storage.from('product-images').remove([uploadedPath]);
+        throw error;
+      }
+      if(editImage&&product?.image_urls?.length){
+        const oldPaths=product.image_urls.map((url:string)=>url.split('/storage/v1/object/public/product-images/')[1]).filter((path:string|undefined):path is string=>!!path&&!path.includes('://')).map((path:string)=>decodeURIComponent(path));
+        if(oldPaths.length)await supabase.storage.from('product-images').remove(oldPaths);
+      }
+      setMessage('Product details updated.');setEditingId(null);setEditImage(null);void refresh();
+    }catch(error:any){setMessage(error?.message??'Could not update product.');}
+    finally{setEditBusy(false);}
   }
   async function toggleProduct(id:string,available:boolean){
     if(!supabase)return;
@@ -203,7 +226,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         </div>
       </div>
       <section className="admin-card inventory"><h2><ClipboardList/> Customer orders</h2>{ordersBusy?<p className="admin-hint">Loading orders…</p>:orders.length===0?<p className="admin-hint">No customer orders yet.</p>:orders.map(o=><article className="admin-order-row" key={o.id}><div className="admin-order-main"><strong>Order #{o.order_number}</strong><small>{o.profiles?.full_name??o.delivery_address_snapshot?.recipient_name??"Customer"} · {new Date(o.created_at).toLocaleString()}</small><small>{(o.order_items??[]).map((i:any)=>i.product_name_snapshot+" × "+i.quantity).join(", ")}</small><small>{o.delivery_address_snapshot?.address_line??"Address unavailable"}</small></div><div className="admin-order-actions"><b>₹{Number(o.total).toFixed(2)}</b><select aria-label={"Status for order "+o.order_number} value={o.status} disabled={o.status==='delivered'||o.status==='cancelled'} onChange={e=>void updateOrderStatus(o.id,o.status,e.target.value)}>{[o.status,...(orderStatusTransitions[o.status]??[])].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div></article>)}</section>
-      <section className="admin-card inventory"><h2>Product inventory</h2>{products.length===0?<p className="admin-hint">No products yet. Add your first product above.</p>:products.map(p=><div className="inventory-row" key={p.id}><span><strong>{p.name}</strong><small>{p.brands?.[0]?.name??'No brand'} · {p.is_available?'Visible in shop':'Hidden from shop'}</small></span><b>₹{Number(p.price).toFixed(2)}</b><div className="stock-actions"><small>{p.stock_quantity} in stock {p.stock_quantity===0?'· Out of stock':p.stock_quantity<=5?'· Low stock':''}</small><button type="button" title="Edit product" onClick={()=>beginEdit(p)}><Pencil size={14}/> Edit</button><button type="button" title="Remove one unit" disabled={p.stock_quantity<=0} onClick={()=>void adjustStock(p.id,p.stock_quantity,-1)}>−1</button><button type="button" title="Add one unit" onClick={()=>void adjustStock(p.id,p.stock_quantity,1)}>+1</button><button type="button" title={p.is_available?'Hide product':'Show product'} onClick={()=>void toggleProduct(p.id,p.is_available)}>{p.is_available?'Hide':'Show'}</button></div>{editingId===p.id&&<div className="admin-edit-product"><label>Product name<input value={editName} onChange={e=>setEditName(e.target.value)}/></label><div className="admin-two"><label>Selling price (₹)<input type="number" min="0" step=".01" value={editPrice} onChange={e=>setEditPrice(e.target.value)}/></label><label>MRP (₹)<input type="number" min="0" step=".01" value={editMrp} onChange={e=>setEditMrp(e.target.value)}/></label><label>Stock quantity<input type="number" min="0" step="1" value={editStock} onChange={e=>setEditStock(e.target.value)}/></label></div><div className="stock-actions"><button type="button" disabled={editBusy} onClick={()=>void saveProductEdit(p.id)}>{editBusy?'Saving…':'Save changes'}</button><button type="button" onClick={()=>setEditingId(null)}><X size={14}/> Cancel</button></div></div>}</div>)}</section>
+      <section className="admin-card inventory"><h2>Product inventory</h2>{products.length===0?<p className="admin-hint">No products yet. Add your first product above.</p>:products.map(p=><div className="inventory-row" key={p.id}><span><strong>{p.name}</strong><small>{p.brands?.[0]?.name??'No brand'} · {p.is_available?'Visible in shop':'Hidden from shop'}</small></span><b>₹{Number(p.price).toFixed(2)}</b><div className="stock-actions"><small>{p.stock_quantity} in stock {p.stock_quantity===0?'· Out of stock':p.stock_quantity<=5?'· Low stock':''}</small><button type="button" title="Edit product" onClick={()=>beginEdit(p)}><Pencil size={14}/> Edit</button><button type="button" title="Remove one unit" disabled={p.stock_quantity<=0} onClick={()=>void adjustStock(p.id,p.stock_quantity,-1)}>−1</button><button type="button" title="Add one unit" onClick={()=>void adjustStock(p.id,p.stock_quantity,1)}>+1</button><button type="button" title={p.is_available?'Hide product':'Show product'} onClick={()=>void toggleProduct(p.id,p.is_available)}>{p.is_available?'Hide':'Show'}</button></div>{editingId===p.id&&<div className="admin-edit-product"><label className="image-upload"><ImagePlus size={18}/><span>{editImage?editImage.name:'Replace product image (optional)'}</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setEditImage(e.target.files?.[0]??null)}/></label><label>Product name<input value={editName} onChange={e=>setEditName(e.target.value)}/></label><div className="admin-two"><label>Selling price (₹)<input type="number" min="0" step=".01" value={editPrice} onChange={e=>setEditPrice(e.target.value)}/></label><label>MRP (₹)<input type="number" min="0" step=".01" value={editMrp} onChange={e=>setEditMrp(e.target.value)}/></label><label>Stock quantity<input type="number" min="0" step="1" value={editStock} onChange={e=>setEditStock(e.target.value)}/></label></div><div className="stock-actions"><button type="button" disabled={editBusy} onClick={()=>void saveProductEdit(p.id)}>{editBusy?'Saving…':'Save changes'}</button><button type="button" onClick={()=>setEditingId(null)}><X size={14}/> Cancel</button></div></div>}</div>)}</section>
     </section>
   </main>;
 }
