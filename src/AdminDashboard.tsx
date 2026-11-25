@@ -24,6 +24,8 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   const [radius,setRadius]=useState('2');
   const [deliveryFee,setDeliveryFee]=useState('0');
   const [accepting,setAccepting]=useState(false);
+  const [storeLat,setStoreLat]=useState('');
+  const [storeLng,setStoreLng]=useState('');
 
   async function refresh(){
     if(!supabase)return;
@@ -31,10 +33,10 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
       supabase.from('brands').select('id,name').eq('is_active',true).order('name'),
       supabase.from('categories').select('id,name').eq('is_active',true).order('sort_order'),
       supabase.from('products').select('id,name,price,stock_quantity,is_available,brands(name)').order('created_at',{ascending:false}),
-      supabase.from('store_settings').select('delivery_radius_km,delivery_fee,accepting_orders').eq('id',1).single()
+      supabase.from('store_settings').select('delivery_radius_km,delivery_fee,accepting_orders,store_latitude,store_longitude').eq('id',1).single()
     ]);
     setBrands(b.data??[]);setCategories(c.data??[]);setProducts(p.data??[]);
-    if(s.data){setRadius(String(s.data.delivery_radius_km));setDeliveryFee(String(s.data.delivery_fee));setAccepting(s.data.accepting_orders);}
+    if(s.data){setRadius(String(s.data.delivery_radius_km));setDeliveryFee(String(s.data.delivery_fee));setAccepting(s.data.accepting_orders);setStoreLat(s.data.store_latitude==null?'':String(s.data.store_latitude));setStoreLng(s.data.store_longitude==null?'':String(s.data.store_longitude));}
   }
   useEffect(()=>{void refresh()},[]);
   async function addBrand(){
@@ -75,7 +77,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   }
   async function saveStore(){
     if(!supabase)return;
-    const {error}=await supabase.from('store_settings').update({delivery_radius_km:Number(radius),delivery_fee:Number(deliveryFee),accepting_orders:accepting}).eq('id',1);
+    const {error}=await supabase.from('store_settings').update({delivery_radius_km:Number(radius),delivery_fee:Number(deliveryFee),accepting_orders:accepting,store_latitude:storeLat===''?null:Number(storeLat),store_longitude:storeLng===''?null:Number(storeLng)}).eq('id',1);
     setMessage(error?.message??'Store settings saved');
   }
   return <main className="admin-page">
@@ -97,7 +99,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
         </form></section>
         <div className="admin-side">
           <section className="admin-card"><h2><Tags/> Brands & categories</h2><div className="inline-add"><input value={newBrand} onChange={e=>setNewBrand(e.target.value)} placeholder="New brand name"/><button onClick={addBrand}>Add</button></div><div className="inline-add"><input value={newCategory} onChange={e=>setNewCategory(e.target.value)} placeholder="New category"/><button onClick={addCategory}>Add</button></div><p className="admin-hint">Add a brand once, then select it for each product. This keeps the catalogue organised.</p></section>
-          <section className="admin-card"><h2><Store/> Delivery settings</h2><label className="admin-label">Delivery radius (km)<input type="number" min=".5" max="100" step=".5" value={radius} onChange={e=>setRadius(e.target.value)}/></label><label className="admin-label">Delivery fee (₹)<input type="number" min="0" value={deliveryFee} onChange={e=>setDeliveryFee(e.target.value)}/></label><label className="admin-check"><input type="checkbox" checked={accepting} onChange={e=>setAccepting(e.target.checked)}/> Accepting orders</label><button className="admin-submit" onClick={saveStore}>Save store settings</button></section>
+          <section className="admin-card"><h2><Store/> Delivery settings</h2><label className="admin-label">Delivery radius (km)<input type="number" min=".5" max="100" step=".5" value={radius} onChange={e=>setRadius(e.target.value)}/></label><label className="admin-label">Delivery fee (₹)<input type="number" min="0" value={deliveryFee} onChange={e=>setDeliveryFee(e.target.value)}/></label><div className="admin-two"><label>Store latitude<input type="number" step="any" value={storeLat} onChange={e=>setStoreLat(e.target.value)} placeholder="17.0000"/></label><label>Store longitude<input type="number" step="any" value={storeLng} onChange={e=>setStoreLng(e.target.value)} placeholder="78.0000"/></label></div><p className="admin-hint">Required to calculate whether a customer address is inside your delivery radius.</p><label className="admin-check"><input type="checkbox" checked={accepting} onChange={e=>setAccepting(e.target.checked)}/> Accepting orders</label><button className="admin-submit" onClick={saveStore}>Save store settings</button></section>
         </div>
       </div>
       <section className="admin-card inventory"><h2>Product inventory</h2>{products.length===0?<p className="admin-hint">No products yet. Add your first product above.</p>:products.map(p=><div className="inventory-row" key={p.id}><span><strong>{p.name}</strong><small>{p.brands?.[0]?.name??'No brand'}</small></span><b>₹{Number(p.price).toFixed(2)}</b><small>{p.stock_quantity} in stock</small></div>)}</section>
