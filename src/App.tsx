@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search, ShieldCheck, ShoppingBag, UserRound, X } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 
-type Product = { id: string; name: string; price: number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string } | null };
+type Product = { id: string; name: string; price: number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
 
 const categoryIcons = [Milk, Leaf, IceCream, Milk];
@@ -42,7 +42,7 @@ export default function App() {
   }, []);
 
   const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
-  const filtered = useMemo(() => products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()) || (p.brands?.name ?? '').toLowerCase().includes(query.toLowerCase())), [products, query]);
+  const filtered = useMemo(() => products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()) || (p.brands?.[0]?.name ?? '').toLowerCase().includes(query.toLowerCase())), [products, query]);
 
   async function signIn() {
     if (!supabase) { setNotice('The shop database is being connected. Please check back soon.'); return; }
@@ -90,7 +90,7 @@ export default function App() {
       {!isSupabaseConfigured && <div className="empty-products"><div className="empty-icon"><ShoppingBag size={25}/></div><h3>We're getting the shop ready</h3><p>Product catalogue and sign-in will become live when the secure shop connection is configured.</p></div>}
       {isSupabaseConfigured && loading && <p className="loading-text">Loading fresh picks…</p>}
       {isSupabaseConfigured && !loading && products.length === 0 && <div className="empty-products"><div className="empty-icon"><ShoppingBag size={25}/></div><h3>Products are coming soon</h3><p>Our team is preparing the catalogue. Check back soon for fresh milk, curd, ice creams and more.</p></div>}
-      {filtered.length > 0 && <div className="product-grid">{filtered.map(product => <article className="product-card" key={product.id}><div className="product-photo">{product.image_urls?.[0] ? <img src={product.image_urls[0]} alt={product.name}/> : <div className="photo-placeholder"><Milk size={35}/></div>}</div><div className="product-info"><small>{product.brands?.name ?? 'Sai Sathwika'}</small><h3>{product.name}</h3><p>{[product.variant_label, product.unit].filter(Boolean).join(' · ')}</p><div className="product-bottom"><strong>₹{Number(product.price).toFixed(2)}</strong><button onClick={() => setCart(c => ({...c, [product.id]: (c[product.id] ?? 0) + 1}))}>Add +</button></div></div></article>)}</div>}
+      {filtered.length > 0 && <div className="product-grid">{filtered.map(product => <article className="product-card" key={product.id}><div className="product-photo">{product.image_urls?.[0] ? <img src={product.image_urls[0]} alt={product.name}/> : <div className="photo-placeholder"><Milk size={35}/></div>}</div><div className="product-info"><small>{product.brands?.[0]?.name ?? 'Sai Sathwika'}</small><h3>{product.name}</h3><p>{[product.variant_label, product.unit].filter(Boolean).join(' · ')}</p><div className="product-bottom"><strong>₹{Number(product.price).toFixed(2)}</strong><button onClick={() => setCart(c => ({...c, [product.id]: (c[product.id] ?? 0) + 1}))}>Add +</button></div></div></article>)}</div>}
     </section>
 
     <footer><div className="shell footer-inner"><div className="brand footer-brand"><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></div><p>Made with care for your neighbourhood.</p><small>© {new Date().getFullYear()} Sai Sathwika</small></div></footer>
