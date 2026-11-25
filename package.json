@@ -19,7 +19,8 @@
     "lucide-react": "latest",
     "@capacitor/core": "latest",
     "@supabase/supabase-js": "^2.86.0",
-    "@capacitor/splash-screen": "latest"
+    "@capacitor/splash-screen": "latest",
+    "maplibre-gl": "^6.19.0"
   },
   "devDependencies": {
     "@capacitor/cli": "latest",
