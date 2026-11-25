@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search, ShieldCheck, ShoppingBag, UserRound, X, Minus, Plus, PackageCheck, LocateFixed } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import AdminDashboard from './AdminDashboard';
+import MapPicker from './MapPicker';
 
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
@@ -34,6 +35,7 @@ export default function App() {
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [address, setAddress] = useState({recipient_name:'',phone:'',address_line:'',landmark:''});
   const [coords, setCoords] = useState<{latitude:number;longitude:number}|null>(null);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [ordersOpen, setOrdersOpen] = useState(false);
@@ -212,7 +214,7 @@ export default function App() {
           <label>Full delivery address<input value={address.address_line} onChange={e=>setAddress(a=>({...a,address_line:e.target.value}))} placeholder="House / flat, street, area"/></label>
           <label>Landmark (optional)<input value={address.landmark} onChange={e=>setAddress(a=>({...a,landmark:e.target.value}))} placeholder="Nearby landmark"/></label>
           <button className={coords?'location-captured':'location-button'} onClick={captureLocation} disabled={locationBusy}><LocateFixed size={17}/>{locationBusy?'Getting location…':coords?'Delivery location captured':'Use my current location'}</button>
-          {coords && <a className="maps-location-link" href={`https://www.openstreetmap.org/?mlat=${coords.latitude}&mlon=${coords.longitude}#map=17/${coords.latitude}/${coords.longitude}`} target="_blank" rel="noreferrer"><MapPin size={15}/> View pinned location in OpenStreetMap <ArrowRight size={14}/></a>}
+          {coords && <><button className="map-edit-button" onClick={()=>setMapPickerOpen(true)}><MapPin size={16}/> Adjust delivery pin on map</button><a className="maps-location-link" href={`https://www.openstreetmap.org/?mlat=${coords.latitude}&mlon=${coords.longitude}#map=17/${coords.latitude}/${coords.longitude}`} target="_blank" rel="noreferrer"><MapPin size={15}/> View pinned location in OpenStreetMap <ArrowRight size={14}/></a></>}
           <label>Note for the store (optional)<textarea value={customerNote} onChange={e=>setCustomerNote(e.target.value)} placeholder="Any delivery instructions?"/></label>
           <button className="place-order-button" onClick={placeOrder} disabled={checkoutBusy || storeAccepting===false}>{checkoutBusy?'Placing order…':storeAccepting===false?'Ordering currently closed':'Place order · ₹'+cartSubtotal.toFixed(2)}</button>
           <small className="checkout-footnote">{storeAccepting===false?'This store is not accepting online orders right now. Your cart will be saved.':'Cash on delivery. Final delivery eligibility and charges are verified securely by the store.'}</small>
@@ -220,7 +222,7 @@ export default function App() {
       </>}
     </section></div>}
     {session && <section className="orders-strip shell"><button onClick={()=>{setOrdersOpen(v=>!v);if(!ordersOpen)void loadOrders();}}><PackageCheck size={17}/> {ordersOpen?'Hide':'View'} my orders</button>{ordersOpen && <div className="orders-list">{customerOrders.length===0?<p>No orders yet.</p>:customerOrders.map(o=><article key={o.id}><div><strong>Order #{o.order_number}</strong><small>{new Date(o.created_at).toLocaleString()}</small>{(o.order_items??[]).map((i:any)=><small key={i.product_name_snapshot}>{i.product_name_snapshot} × {i.quantity}</small>)}</div><div><b>₹{Number(o.total).toFixed(2)}</b><span className={'order-status '+o.status}>{String(o.status).replaceAll('_',' ')}</span></div></article>)}</div>}</section>}
-    {loginOpen && <div className="modal-backdrop" onClick={() => setLoginOpen(false)}><section className="login-modal" onClick={e => e.stopPropagation()}><button className="modal-close" onClick={() => setLoginOpen(false)}><X size={19}/></button><div className="login-logo">S</div><span className="eyebrow">WELCOME TO SAI SATHWIKA</span><h2>Freshness is one tap away.</h2><p>Sign in securely with your Google account to save your address and orders.</p><button className="google-button" onClick={signIn}><span className="google-g">G</span> Continue with Google</button><small>Your account details are protected. We never ask for your Google password.</small></section></div>}
+    {mapPickerOpen && coords && <MapPicker initial={coords} onClose={()=>setMapPickerOpen(false)} onConfirm={point=>{setCoords(point);setMapPickerOpen(false);setNotice('Delivery pin updated.');}}/>}\n    {loginOpen && <div className="modal-backdrop" onClick={() => setLoginOpen(false)}><section className="login-modal" onClick={e => e.stopPropagation()}><button className="modal-close" onClick={() => setLoginOpen(false)}><X size={19}/></button><div className="login-logo">S</div><span className="eyebrow">WELCOME TO SAI SATHWIKA</span><h2>Freshness is one tap away.</h2><p>Sign in securely with your Google account to save your address and orders.</p><button className="google-button" onClick={signIn}><span className="google-g">G</span> Continue with Google</button><small>Your account details are protected. We never ask for your Google password.</small></section></div>}
     {splashVisible && <div className="brand-splash" role="status" aria-label="Loading Sai Sathwika"><div className="splash-glow splash-glow-one"/><div className="splash-glow splash-glow-two"/><div className="splash-brand-mark"><span>S</span><i/></div><div className="splash-wordmark">Sai Sathwika</div><div className="splash-tagline">FRESHNESS AT YOUR DOORSTEP</div><div className="splash-loader"><span/></div><div className="splash-credit">Made with <b>♥</b> by <strong>Krishna Karthik</strong></div></div>}
     {notice && <div className="notice" role="status"><CheckCircle2 size={17}/>{notice}<button onClick={() => setNotice('')}><X size={16}/></button></div>}
   </main>;
