@@ -209,3 +209,30 @@ create policy "Admins manage promotions" on public.promotions for all to authent
 -- Checkout must be implemented server-side so price, stock, order totals and delivery radius are verified.
 -- First Super Admin must be assigned manually after the owner's first Google sign-in:
 -- update public.profiles set role = 'super_admin' where id = '<AUTH USER UUID>';
+
+
+-- Product catalogue images: public read, authenticated admins can upload/manage.
+insert into storage.buckets(id, name, public, file_size_limit, allowed_mime_types)
+values ('product-images','product-images',true,5242880,array['image/jpeg','image/png','image/webp'])
+on conflict (id) do nothing;
+
+create policy "Public can view product images"
+on storage.objects for select
+to anon, authenticated
+using (bucket_id = 'product-images');
+
+create policy "Admins upload product images"
+on storage.objects for insert
+to authenticated
+with check (bucket_id = 'product-images' and public.is_admin());
+
+create policy "Admins update product images"
+on storage.objects for update
+to authenticated
+using (bucket_id = 'product-images' and public.is_admin())
+with check (bucket_id = 'product-images' and public.is_admin());
+
+create policy "Admins delete product images"
+on storage.objects for delete
+to authenticated
+using (bucket_id = 'product-images' and public.is_admin());
