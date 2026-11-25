@@ -4,6 +4,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: sai-sathwika-main-build
   cancel-in-progress: true
@@ -44,3 +47,14 @@ jobs:
         with:
           name: sai-sathwika-android-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Publish APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.${{ github.run_number }}
+          name: Sai Sathwika v0.1.${{ github.run_number }}
+          body: |
+            Android debug APK built from commit ${{ github.sha }}.
+
+            Install this APK on your Android device. This is a debug build for testing.
+          prerelease: true
+          files: android/app/build/outputs/apk/debug/app-debug.apk
