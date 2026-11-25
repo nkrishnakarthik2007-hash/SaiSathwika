@@ -28,7 +28,13 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   const [storeLng,setStoreLng]=useState('');
   const [storeLocationBusy,setStoreLocationBusy]=useState(false);
   const [orders,setOrders]=useState<any[]>([]);
-  const [ordersBusy,setOrdersBusy]=useState(false);\n  const [editingId,setEditingId]=useState<string|null>(null);\n  const [editName,setEditName]=useState('');\n  const [editPrice,setEditPrice]=useState('');\n  const [editMrp,setEditMrp]=useState('');\n  const [editStock,setEditStock]=useState('');\n  const [editBusy,setEditBusy]=useState(false);
+  const [ordersBusy,setOrdersBusy]=useState(false);
+  const [editingId,setEditingId]=useState<string|null>(null);
+  const [editName,setEditName]=useState('');
+  const [editPrice,setEditPrice]=useState('');
+  const [editMrp,setEditMrp]=useState('');
+  const [editStock,setEditStock]=useState('');
+  const [editBusy,setEditBusy]=useState(false);
 
   async function refresh(){
     if(!supabase)return;
