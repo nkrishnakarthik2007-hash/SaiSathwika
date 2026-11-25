@@ -116,7 +116,7 @@ export default function App() {
     if (error) setNotice(error.message);
   }
 
-  if(adminView && ['admin','super_admin','staff'].includes(adminRole)) return <AdminDashboard onBack={()=>setAdminView(false)}/>;
+  if(adminView && ['admin','super_admin'].includes(adminRole)) return <AdminDashboard onBack={()=>setAdminView(false)}/>;
 
   return <main>
     <div className="announcement">Fresh dairy from your neighbourhood · Free delivery at launch</div>
