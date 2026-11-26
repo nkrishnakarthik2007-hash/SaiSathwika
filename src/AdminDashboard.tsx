@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react';
-import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X } from 'lucide-react';
+import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X, LayoutDashboard, Users, Percent, Activity, ShoppingBag, RefreshCw, TrendingUp, Truck } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 type Option = { id: string; name: string };
+type AdminTab = 'overview' | 'products' | 'orders' | 'customers' | 'promotions' | 'store' | 'diagnostics';
+const adminTabs: { id: AdminTab; label: string; icon: any }[] = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'products', label: 'Products', icon: PackagePlus },
+  { id: 'orders', label: 'Orders', icon: ClipboardList },
+  { id: 'customers', label: 'Customers', icon: Users },
+  { id: 'promotions', label: 'Promotions', icon: Percent },
+  { id: 'store', label: 'Store settings', icon: Store },
+  { id: 'diagnostics', label: 'Live health', icon: Activity },
+];
+
 const orderStatusTransitions: Record<string, string[]> = {
   placed: ['confirmed', 'cancelled'],
   confirmed: ['preparing', 'cancelled'],
@@ -67,6 +78,18 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   const [editImage,setEditImage]=useState<File|null>(null);
   const [inventorySearch,setInventorySearch]=useState('');
   const [lowStockOnly,setLowStockOnly]=useState(false);
+  const [activeTab,setActiveTab]=useState<AdminTab>('overview');
+  const [customers,setCustomers]=useState<any[]>([]);
+  const [customerSearch,setCustomerSearch]=useState('');
+  const [promotions,setPromotions]=useState<any[]>([]);
+  const [promotionName,setPromotionName]=useState('');
+  const [promotionDescription,setPromotionDescription]=useState('');
+  const [promotionType,setPromotionType]=useState('percentage');
+  const [promotionRules,setPromotionRules]=useState('10');
+  const [promotionBusy,setPromotionBusy]=useState(false);
+  const [diagnostics,setDiagnostics]=useState<any[]>([]);
+  const [diagnosticsBusy,setDiagnosticsBusy]=useState(false);
+  const [lastRefreshed,setLastRefreshed]=useState<Date|null>(null);
 
   async function refresh(){
     if(!supabase)return;
@@ -82,11 +105,44 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   async function refreshOrders(){
     if(!supabase)return;
     setOrdersBusy(true);
-    const {data,error}=await supabase.from('orders').select('id,order_number,status,total,created_at,customer_id,delivery_address_snapshot,profiles(full_name,phone),order_items(product_name_snapshot,quantity)').order('created_at',{ascending:false}).limit(50);
-    if(error)setMessage(error.message);else setOrders(data??[]);
+    const {data,error}=await supabase.from('orders').select('id,order_number,status,total,payment_method,payment_status,created_at,customer_id,delivery_address_snapshot,profiles(full_name,phone),order_items(product_name_snapshot,quantity)').order('created_at',{ascending:false}).limit(50);
+    if(error)setMessage(error.message);else{setOrders(data??[]);setLastRefreshed(new Date());}
     setOrdersBusy(false);
   }
-  useEffect(()=>{void refresh();void refreshOrders()},[]);
+  async function refreshCustomers(){
+    if(!supabase)return;
+    const {data,error}=await supabase.from('profiles').select('id,full_name,phone,avatar_url,role,is_active,created_at').order('created_at',{ascending:false}).limit(200);
+    if(error)setMessage('Customer list: '+error.message);else setCustomers(data??[]);
+  }
+  async function refreshPromotions(){
+    if(!supabase)return;
+    const {data,error}=await supabase.from('promotions').select('id,name,description,promotion_type,rules,is_active,starts_at,ends_at,created_at').order('created_at',{ascending:false});
+    if(error)setMessage('Promotions: '+error.message);else setPromotions(data??[]);
+  }
+  async function refreshDiagnostics(){
+    if(!supabase)return;
+    setDiagnosticsBusy(true);
+    const {data,error}=await supabase.from('app_diagnostics').select('id,received_at,app_version,platform,level,message,stack').order('received_at',{ascending:false}).limit(100);
+    if(error)setMessage('Live health is restricted to the super-admin account. '+error.message);
+    else setDiagnostics(data??[]);
+    setDiagnosticsBusy(false);
+  }
+  useEffect(()=>{
+    void refresh();
+    void refreshOrders();
+    const channel=supabase?.channel('sai-sathwika-admin-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>void refreshOrders())
+      .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>void refresh())
+      .on('postgres_changes',{event:'*',schema:'public',table:'app_diagnostics'},()=>{if(activeTab==='diagnostics')void refreshDiagnostics();})
+      .subscribe();
+    return ()=>{if(channel)void supabase?.removeChannel(channel);};
+  },[]);
+  useEffect(()=>{
+    if(activeTab==='customers')void refreshCustomers();
+    if(activeTab==='promotions')void refreshPromotions();
+    if(activeTab==='diagnostics')void refreshDiagnostics();
+    if(activeTab==='orders')void refreshOrders();
+  },[activeTab]);
   function captureStoreLocation(){
     if(!navigator.geolocation){setMessage('Location is not supported on this device.');return;}
     setStoreLocationBusy(true);
@@ -192,6 +248,30 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     }catch(err){setMessage(err instanceof Error?err.message:'Unable to save product');}
     finally{setBusy(false);}
   }
+  async function addPromotion(){
+    if(!supabase||!promotionName.trim())return;
+    const rawValue=Number(promotionRules);
+    if(!Number.isFinite(rawValue)||rawValue<=0){setMessage('Enter a valid promotion value greater than zero.');return;}
+    if(promotionType==='percentage'&&rawValue>100){setMessage('Percentage discount cannot be more than 100%.');return;}
+    setPromotionBusy(true);
+    const rules=promotionType==='percentage'?{percentage:rawValue}:promotionType==='fixed_amount'?{amount:rawValue}:{minimum_quantity:1};
+    const {error}=await supabase.from('promotions').insert({
+      name:promotionName.trim(),
+      description:promotionDescription.trim()||null,
+      promotion_type:promotionType,
+      rules,
+      is_active:false
+    });
+    if(error)setMessage(error.message);
+    else{setMessage('Promotion created. Activate it when it is ready.');setPromotionName('');setPromotionDescription('');setPromotionRules('10');void refreshPromotions();}
+    setPromotionBusy(false);
+  }
+  async function togglePromotion(id:string,isActive:boolean){
+    if(!supabase)return;
+    const {error}=await supabase.from('promotions').update({is_active:!isActive}).eq('id',id);
+    if(error)setMessage(error.message);else{setMessage('Promotion status updated.');void refreshPromotions();}
+  }
+
   async function saveStore(){
     if(!supabase)return;
     const radiusValue=Number(radius),feeValue=Number(deliveryFee);
@@ -206,6 +286,9 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     setMessage(error?.message??'Store settings saved');
   }
   const visibleInventory=products.filter(p=>(p.name+' '+(p.brands?.[0]?.name??'')).toLowerCase().includes(inventorySearch.trim().toLowerCase())&&(!lowStockOnly||p.stock_quantity<=5));
+  const visibleCustomers=customers.filter(c=>(c.full_name??'').toLowerCase().includes(customerSearch.toLowerCase())||(c.phone??'').includes(customerSearch)||(c.role??'').toLowerCase().includes(customerSearch.toLowerCase()));
+  const recentValue=orders.reduce((sum,o)=>sum+Number(o.total??0),0);
+  const pendingOrders=orders.filter(o=>!['delivered','cancelled'].includes(o.status)).length;
 
   return <main className="admin-page">
     <header className="admin-top"><button onClick={onBack}><ArrowLeft size={17}/> Storefront</button><div><ShieldCheck size={19}/> Sai Sathwika · Admin</div></header>
