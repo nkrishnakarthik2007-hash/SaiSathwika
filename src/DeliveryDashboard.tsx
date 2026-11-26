@@ -7,6 +7,8 @@ type DeliveryOrder = {
   order_number: number;
   status: string;
   total: number;
+  payment_method: string;
+  payment_status: string;
   created_at: string;
   delivery_address_snapshot: { recipient_name?: string; phone?: string; address_line?: string; landmark?: string; latitude?: number; longitude?: number };
   order_items?: { product_name_snapshot: string; quantity: number }[];
@@ -24,7 +26,7 @@ export default function DeliveryDashboard({ onSignOut }: { onSignOut: () => void
     if (!supabase) return;
     const { data, error } = await supabase
       .from('order_assignments')
-      .select('order_id,assigned_at,orders(id,order_number,status,total,created_at,delivery_address_snapshot,order_items(product_name_snapshot,quantity))')
+      .select('order_id,assigned_at,orders(id,order_number,status,total,payment_method,payment_status,created_at,delivery_address_snapshot,order_items(product_name_snapshot,quantity))')
       .order('assigned_at', { ascending: false });
     if (error) setMessage(error.message);
     else {
@@ -109,7 +111,7 @@ export default function DeliveryDashboard({ onSignOut }: { onSignOut: () => void
             <div className="delivery-order-top"><div><small>ORDER NUMBER</small><strong>#{order.order_number}</strong></div><span className={'delivery-status '+order.status}>{order.status.replaceAll('_',' ')}</span></div>
             <div className="delivery-customer"><strong>{address.recipient_name || 'Customer'}</strong><span>{address.address_line || 'Address not available'}{address.landmark ? ' · ' + address.landmark : ''}</span></div>
             <div className="delivery-items">{(order.order_items ?? []).map((item,index) => <span key={index}>{item.product_name_snapshot} × {item.quantity}</span>)}</div>
-            <div className="delivery-order-footer"><strong>₹{Number(order.total).toFixed(2)} <small>Cash on delivery</small></strong><span>{new Date(order.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span></div>
+            <div className="delivery-order-footer"><div className="delivery-amount"><strong>₹{Number(order.total).toFixed(2)}</strong><span className={'delivery-payment '+(order.payment_status==='paid'?'paid':'pending')}><span>{order.payment_status==='paid'?'Paid':order.payment_method==='cash_on_delivery'?'Collect cash':'Payment pending'}</span><small>{order.payment_method==='cash_on_delivery'?'Cash on delivery':order.payment_method==='online'?'Online payment':'Payment method unavailable'}</small></span></div><span>{new Date(order.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span></div>
             <div className="delivery-actions">
               {phone && <a href={'tel:'+phone}><Phone size={16}/> Call customer</a>}
               <button type="button" onClick={() => openNavigation(order)}><Navigation size={16}/> Navigate</button>

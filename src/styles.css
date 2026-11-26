@@ -449,3 +449,6 @@ footer{background:linear-gradient(110deg,#edf5e7,#f8f7ed)!important;border-top:1
 .admin-edit-product{display:grid;gap:12px}
 @media(max-width:850px){.heritage-mrp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:540px){.heritage-mrp-page{padding:14px}.heritage-mrp-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.heritage-mrp-image{height:125px}.heritage-mrp-card-body{padding:10px}}
+
+/* Clear payment collection status on delivery cards */
+.delivery-amount{display:grid;gap:7px}.delivery-payment{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.delivery-payment>span{display:inline-flex;align-items:center;border-radius:30px;padding:5px 9px;font-size:10px;font-weight:800}.delivery-payment.paid>span{background:#e6f5e9;color:#287345}.delivery-payment.pending>span{background:#fff1d9;color:#8a5b17}.delivery-payment small{font-size:11px;color:#7d887e;font-weight:500}
