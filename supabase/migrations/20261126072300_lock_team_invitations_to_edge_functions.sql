@@ -1,0 +1,1 @@
+create policy "No direct team invitation access" on public.team_invitations for all to anon,authenticated using(false) with check(false);
