@@ -75,7 +75,15 @@ export default function App() {
     catch { window.location.href = appUpdate.apkUrl; }
   }
 
-  useEffect(() => { if (Capacitor.getPlatform() === 'android') void checkForUpdates(); }, []);
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'android') return;
+    void checkForUpdates();
+    let listener: { remove: () => Promise<void> } | undefined;
+    void NativeApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) void checkForUpdates();
+    }).then(handle => { listener = handle; });
+    return () => { void listener?.remove(); };
+  }, []);
   useEffect(() => {
     let active = true;
     // Keep the native Android splash visible until React has painted the branded
