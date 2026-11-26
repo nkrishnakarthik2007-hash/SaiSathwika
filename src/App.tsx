@@ -199,6 +199,7 @@ export default function App() {
         setAdminRole('customer');
         setAdminView(false);
         setCartCloudUserId(null);
+        setCart({});
       }
     });
     return () => listener.subscription.unsubscribe();
@@ -221,6 +222,21 @@ export default function App() {
       setNotice('This Google account does not have permission to manage the store. Please use the store admin account.');
     }
   }, [adminPortalRequested, sessionResolved, session?.user.id, roleResolved, adminRole]);
+
+  useEffect(() => {
+    if (!supabase || !session) return;
+    const client = supabase;
+    const userId = session.user.id;
+    const flush = () => { void flushAppDiagnostics(client, userId); };
+    window.addEventListener('error', flush);
+    window.addEventListener('unhandledrejection', flush);
+    window.addEventListener('online', flush);
+    return () => {
+      window.removeEventListener('error', flush);
+      window.removeEventListener('unhandledrejection', flush);
+      window.removeEventListener('online', flush);
+    };
+  }, [session?.user.id]);
 
   useEffect(() => {
     const supabaseClient = supabase;
