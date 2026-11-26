@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Sai Sathwika Admin",
+  "version": "0.1.0",
+  "identifier": "in.saisathwika.admin",
+  "build": {
+    "frontendDist": "https://nkrishnakarthik2007-hash.github.io/SaiSathwika/?admin=1"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Sai Sathwika Admin",
+        "width": 1440,
+        "height": 920,
+        "minWidth": 1120,
+        "minHeight": 720,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null,
+      "capabilities": []
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ]
+  }
+}
