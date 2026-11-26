@@ -114,7 +114,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (Capacitor.getPlatform() !== 'android' || !supabase) return;
+    const supabaseClient = supabase;
+    if (Capacitor.getPlatform() !== 'android' || !supabaseClient) return;
     let active = true;
     let appUrlListener: { remove: () => Promise<void> } | undefined;
     let handledCode: string | null = null;
@@ -135,7 +136,7 @@ export default function App() {
         handledCode = code;
 
         await Browser.close().catch(() => undefined);
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
         if (error) throw error;
         if (active) {
           setLoginOpen(false);
