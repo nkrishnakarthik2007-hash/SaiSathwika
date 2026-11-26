@@ -19,7 +19,7 @@ A single-store dairy and ice-cream commerce application.
 This project must use a dedicated Supabase project. Do not connect it to NKKAMS or student-attendance. Never commit secrets or Supabase service-role keys.
 
 ## Status
-Project initialized. Customer storefront, authentication, database schema, admin dashboard, delivery-radius checks and Android packaging are next.
+An early working prototype now includes the customer storefront, Google sign-in flow, Supabase schema and RLS, admin dashboard, cart/order flow, delivery-radius checks, diagnostics and Android packaging. The live store is **not ready to accept orders**: the database currently has no products, no configured store coordinates and `accepting_orders` is false. GitHub Pages is not enabled for this repository, so the public storefront host is not yet verified. The Windows admin companion is source-only until its installer workflow and hosted frontend are configured. Checkout currently uses cash on delivery; no online payment gateway is connected.
 
 ## Android releases and updates
 
