@@ -422,10 +422,10 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   <div className="admin-section-heading"><div><h2><UserPlus/> Team access</h2><p>Invite trusted people using their exact Google account email. Invitations expire after 7 days.</p></div><button type="button" className="admin-refresh-button" onClick={()=>void refreshInvitations()} disabled={teamBusy}><RefreshCw size={15}/> Refresh</button></div>
   <form className="admin-form admin-team-invite" onSubmit={createInvitation}>
     <label>Google account email<input required type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="person@gmail.com"/></label>
-    <label>Access level<select value={inviteRole} onChange={e=>setInviteRole(e.target.value as 'admin'|'owner')}><option value="admin">Admin — daily store operations</option>{role==='super_admin'&&<option value="owner">Owner — store operations + invite admins</option>}</select></label>
+    <label>Access level<select value={inviteRole} onChange={e=>setInviteRole(e.target.value as 'admin'|'owner'|'delivery_staff')}><option value="admin">Admin — daily store operations</option><option value="delivery_staff">Delivery Partner — assigned deliveries only</option>{role==='super_admin'&&<option value="owner">Owner — store operations + invite admins</option>}</select></label>
     <button className="admin-submit" disabled={teamBusy||!inviteEmail.trim()}><Mail size={16}/>{teamBusy?'Working…':'Create invitation & copy message'}</button>
   </form>
-  <p className="admin-hint">The invitation message is copied so you can send it through WhatsApp, email or SMS. The recipient must sign in with Google using the exact invited email. Owners can invite Admins; only the Super Admin can invite Owners.</p>
+  <p className="admin-hint">The invitation message is copied so you can send it through WhatsApp, email or SMS. The recipient must sign in with Google using the exact invited email. Owners can invite Admins and Delivery Partners; only the Super Admin can invite Owners.</p>
   <h3 className="admin-team-subtitle">Invitations</h3>
   {teamInvitations.length===0?<p className="admin-hint">No invitations yet.</p>:teamInvitations.map(inv=><article className="admin-team-row" key={inv.id}>
     <div><strong>{inv.email}</strong><small>{inv.role.replaceAll('_',' ')} · Expires {new Date(inv.expires_at).toLocaleDateString()}</small></div>
@@ -433,7 +433,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     {!inv.accepted_at&&!inv.revoked_at&&new Date(inv.expires_at)>new Date()&&<button type="button" disabled={teamBusy} onClick={()=>void revokeInvitation(inv.id)}>Revoke</button>}
   </article>)}
   <h3 className="admin-team-subtitle">Current access</h3>
-  {customers.filter(member=>['admin','owner','super_admin'].includes(member.role)).map(member=><article className="admin-team-row" key={member.id}><div><strong>{member.full_name||'Team member'}</strong><small>Joined {new Date(member.created_at).toLocaleDateString()}</small></div><span className="admin-role-pill">{member.role.replaceAll('_',' ')}</span><span className={member.is_active?'admin-active-pill':'admin-inactive-pill'}>{member.is_active?'Active':'Inactive'}</span></article>)}
+  {customers.filter(member=>['admin','owner','super_admin','delivery_staff'].includes(member.role)).map(member=><article className="admin-team-row" key={member.id}><div><strong>{member.full_name||'Team member'}</strong><small>Joined {new Date(member.created_at).toLocaleDateString()}</small></div><span className="admin-role-pill">{member.role.replaceAll('_',' ')}</span><span className={member.is_active?'admin-active-pill':'admin-inactive-pill'}>{member.is_active?'Active':'Inactive'}</span></article>)}
 </section>}
       {activeTab==='diagnostics'&&<section className="admin-card inventory">
   <div className="admin-section-heading"><div><h2><Activity/> Live app health & diagnostics</h2><p>Runtime errors submitted by signed-in app users. Only the super-admin account can read these records.</p></div><button type="button" className="admin-refresh-button" onClick={()=>void refreshDiagnostics()} disabled={diagnosticsBusy}><RefreshCw size={15}/> {diagnosticsBusy?'Refreshing…':'Refresh'}</button></div>
