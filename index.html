@@ -1,2 +1,76 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="theme-color" content="#0b1238"/><meta name="description" content="Sai Sathwika — fresh dairy, delivered to your doorstep."/><link rel="manifest" href="/manifest.webmanifest"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="default"/><title>Sai Sathwika | Freshness at Your Doorstep</title></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0b1238"/>
+  <meta name="description" content="Sai Sathwika — fresh dairy, delivered to your doorstep."/>
+  <link rel="manifest" href="/manifest.webmanifest"/>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <title>Sai Sathwika | Freshness at Your Doorstep</title>
+  <style>
+    html,body{margin:0;min-height:100%;background:#030719}
+    #root{min-height:100vh}
+    #app-boot-screen{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 50% 42%,#17235c 0%,#0b1238 44%,#030719 100%);color:#f7f8ff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;opacity:1;transition:opacity .32s ease}
+    #app-boot-screen:before,#app-boot-screen:after{content:"";position:absolute;width:min(86vw,520px);aspect-ratio:1;border:1px solid #9bb8ff20;border-radius:50%;pointer-events:none}
+    #app-boot-screen:after{width:min(68vw,400px);border-color:#9bb8ff18}
+    #app-boot-screen .boot-logo{position:relative;width:108px;height:108px;filter:drop-shadow(0 18px 34px #070b3588);animation:boot-float 2.3s ease-in-out infinite}
+    #app-boot-screen .boot-name{position:relative;margin-top:25px;font-family:Georgia,serif;font-weight:700;font-size:31px;letter-spacing:.01em}
+    #app-boot-screen .boot-tagline{position:relative;margin-top:9px;font-size:9px;font-weight:700;letter-spacing:.24em;color:#c8d4fa}
+    #app-boot-screen .boot-track{position:relative;width:112px;height:3px;margin-top:34px;overflow:hidden;border-radius:9px;background:#ffffff35}
+    #app-boot-screen .boot-track span{display:block;width:42%;height:100%;border-radius:9px;background:linear-gradient(90deg,#22d3ee,#c084fc);animation:boot-progress 1.35s ease-in-out infinite}
+    #app-boot-screen .boot-caption{position:absolute;bottom:max(30px,env(safe-area-inset-bottom));font-size:11px;color:#aebce9}
+    #app-boot-screen.app-boot-screen-hidden{opacity:0;pointer-events:none}
+    @keyframes boot-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+    @keyframes boot-progress{0%{transform:translateX(-115%)}100%{transform:translateX(290%)}}
+    @media(prefers-reduced-motion:reduce){#app-boot-screen .boot-logo,#app-boot-screen .boot-track span{animation:none}}
+  </style>
+  <script>
+    (() => {
+      const key = 'sai-sathwika-diagnostics-v1';
+      const redact = (value) => String(value || '').replace(/(access_token|refresh_token|client_secret|code_verifier|apikey)(=|:)([^&\\s]+)/gi, '$1$2[redacted]').slice(0, 5000);
+      const capture = (message, stack) => {
+        try {
+          const previous = JSON.parse(localStorage.getItem(key) || '[]');
+          const records = Array.isArray(previous) ? previous : [];
+          records.push({
+            id: String(Date.now()) + '-' + Math.random().toString(36).slice(2, 8),
+            occurred_at: new Date().toISOString(),
+            level: 'error',
+            platform: 'webview-boot',
+            message: redact(message),
+            stack: stack ? redact(stack) : null
+          });
+          localStorage.setItem(key, JSON.stringify(records.slice(-60)));
+        } catch (_) {}
+      };
+      window.addEventListener('error', (event) => capture(event.message || 'A startup script failed to load', event.error && event.error.stack));
+      window.addEventListener('unhandledrejection', (event) => {
+        const reason = event.reason;
+        capture(reason && reason.message ? reason.message : String(reason || 'Unhandled startup promise'), reason && reason.stack);
+      });
+    })();
+  </script>
+</head>
+<body>
+  <div id="app-boot-screen" role="status" aria-live="polite" aria-label="Starting Sai Sathwika">
+    <svg class="boot-logo" viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <linearGradient id="boot-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#22d3ee"/><stop offset=".52" stop-color="#3b82f6"/><stop offset="1" stop-color="#9333ea"/></linearGradient>
+      </defs>
+      <rect x="4" y="4" width="112" height="112" rx="34" fill="url(#boot-bg)" stroke="#a5f3fc" stroke-opacity=".55"/>
+      <path d="M82 31C70 23 40 26 34 42c-8 22 22 22 39 31 16 8 7 29-17 29-10 0-20-4-27-10" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round"/>
+      <path d="M60 100c-12-10-24-10-36-6m36 6c12-10 24-10 36-6m-36 6v10" fill="none" stroke="#e0f2fe" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M94 14l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#fff"/>
+    </svg>
+    <div class="boot-name">Sai Sathwika</div>
+    <div class="boot-tagline">FRESHNESS AT YOUR DOORSTEP</div>
+    <div class="boot-track"><span></span></div>
+    <div class="boot-caption">Preparing your store…</div>
+  </div>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
