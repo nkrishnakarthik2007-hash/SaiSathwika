@@ -6,7 +6,7 @@ Deno.serve(async(req:Request)=>{
  if(req.method!=="POST")return new Response(JSON.stringify({error:"Method not allowed"}),{status:405,headers:cors});
  try{
   const url=Deno.env.get("SUPABASE_URL")!,anon=Deno.env.get("SUPABASE_ANON_KEY")!,secret=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const token=(req.headers.get("Authorization")??"").replace(/^Bearer\\s+/i,"");
+  const token=(req.headers.get("Authorization")??"").replace(/^Bearer\s+/i,"");
   if(!token)return new Response(JSON.stringify({error:"Sign in required."}),{status:401,headers:cors});
   const auth=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false}});
   const {data:authData,error:authError}=await auth.auth.getUser(token),user=authData.user;
@@ -34,7 +34,7 @@ Deno.serve(async(req:Request)=>{
   }
   if(action==="invite"){
    const email=String(body.email??"").trim().toLowerCase(),role=String(body.role??"");
-   if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))return new Response(JSON.stringify({error:"Enter a valid email address."}),{status:400,headers:cors});
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return new Response(JSON.stringify({error:"Enter a valid email address."}),{status:400,headers:cors});
    if(!["admin","owner"].includes(role))return new Response(JSON.stringify({error:"Choose Admin or Owner."}),{status:400,headers:cors});
    if(caller.role==="owner"&&role!=="admin")return new Response(JSON.stringify({error:"Owners can invite Admins only."}),{status:403,headers:cors});
    if(email===user.email.toLowerCase())return new Response(JSON.stringify({error:"You cannot invite your own account."}),{status:400,headers:cors});
