@@ -235,6 +235,10 @@ export default function App() {
   }, [adminPortalRequested, sessionResolved, session?.user.id, roleResolved, adminRole]);
 
   useEffect(() => {
+    if (session && roleResolved && adminRole === 'delivery_staff') setAdminView(true);
+  }, [session?.user.id, roleResolved, adminRole]);
+
+  useEffect(() => {
     if (!supabase || !session) return;
     const client = supabase;
     const userId = session.user.id;
