@@ -16,6 +16,8 @@ create index if not exists app_diagnostics_user_received_idx
   on public.app_diagnostics (user_id, received_at desc);
 
 alter table public.app_diagnostics enable row level security;
+grant insert, select on public.app_diagnostics to authenticated;
+grant usage, select on sequence public.app_diagnostics_id_seq to authenticated;
 
 drop policy if exists "Authenticated users submit own diagnostics" on public.app_diagnostics;
 create policy "Authenticated users submit own diagnostics"
@@ -27,4 +29,4 @@ drop policy if exists "Super admins read app diagnostics" on public.app_diagnost
 create policy "Super admins read app diagnostics"
   on public.app_diagnostics
   for select to authenticated
-  using (public.is_super_admin());
+  using (private.is_super_admin());
