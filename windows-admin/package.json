@@ -1,0 +1,15 @@
+{
+  "name": "sai-sathwika-admin",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri",
+    "icon": "tauri icon ../assets/icon-only.svg --output src-tauri/icons",
+    "set-version": "node scripts/set-version.mjs",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}
