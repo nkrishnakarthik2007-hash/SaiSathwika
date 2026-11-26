@@ -16,7 +16,7 @@ if (manifest.includes(`android:scheme="${scheme}"`) && manifest.includes(`androi
   process.exit(0);
 }
 
-const activityTags = [...manifest.matchAll(/<activity\\b[^>]*>/g)];
+const activityTags = [...manifest.matchAll(/<activity\b[^>]*>/g)];
 const mainActivityTag = activityTags.find((match) => /android:name=["'][^"']*MainActivity["']/.test(match[0]));
 if (!mainActivityTag || mainActivityTag.index === undefined) {
   throw new Error('Could not find the Capacitor MainActivity in AndroidManifest.xml.');
