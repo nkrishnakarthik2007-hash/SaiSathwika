@@ -6,6 +6,7 @@ This is the native Windows companion for the Sai Sathwika store.
 - Sign in with the Google account that has the store administrator role.
 - It uses the shared Supabase database; there is no separate product or order database.
 - Internet access is required because the store workspace is hosted by GitHub Pages.
-- Windows installers are generated as MSI and NSIS setup EXE packages by GitHub Actions.
+- MSI and NSIS setup EXE packages are the intended release targets, but a Windows build workflow and published installer are not configured yet.
+- The current Tauri frontend URL points to this repository's GitHub Pages site; GitHub Pages is not enabled for this repository at present, so the hosted admin UI is not verified as reachable.
 
 The storefront and admin workspace remain one application and one backend. The Windows shell is a desktop entry point for the admin experience.
