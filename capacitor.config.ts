@@ -6,6 +6,6 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   bundledWebRuntime: false,
   server: { androidScheme: 'https' },
-  plugins: { SplashScreen: { launchAutoHide: false, backgroundColor: '#087c34', launchFadeOutDuration: 250, showSpinner: false } }
+  plugins: { SplashScreen: { launchAutoHide: false, backgroundColor: '#030719', launchFadeOutDuration: 250, showSpinner: false } }
 };
 export default config;
