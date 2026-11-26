@@ -446,7 +446,7 @@ export default function App() {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .select('id,order_number,status,total,created_at,delivery_address_snapshot,order_items(product_name_snapshot,quantity,line_total)')
+        .select('id,order_number,status,total,payment_method,payment_status,created_at,delivery_address_snapshot,order_items(product_name_snapshot,quantity,line_total)')
         .eq('customer_id', session.user.id)
         .order('created_at', { ascending: false })
         .limit(30);
@@ -660,7 +660,7 @@ export default function App() {
       {ordersLoading ? <div className="customer-empty-state"><div className="loading-orbit"/><strong>Loading your orders…</strong></div>
         : customerOrders.length === 0 ? <div className="customer-empty-state"><div className="customer-empty-icon"><PackageCheck size={28}/></div><h2>No orders yet</h2><p>Your orders will appear here after you place your first order.</p><button className="primary" onClick={() => navigateCustomerPage('shop')}>Start shopping <ArrowRight size={16}/></button></div>
         : <div className="customer-orders-grid">{customerOrders.map(order => <article className="customer-order-card" key={order.id}>
-            <div className="customer-order-top"><div><small>ORDER NUMBER</small><strong>#{order.order_number}</strong></div><span className={'customer-order-status ' + order.status}>{String(order.status).replaceAll('_',' ')}</span></div>
+            <div className="customer-order-top"><div><small>ORDER NUMBER</small><strong>#{order.order_number}</strong></div><span className={'customer-order-status ' + order.status}>{String(order.status).replaceAll('_',' ')}</span><small className="customer-payment-status">Payment: {(order.payment_method??'cash_on_delivery').replaceAll('_',' ')} · {(order.payment_status??'pending').replaceAll('_',' ')}</small></div>
             <div className="customer-order-items">{(order.order_items ?? []).map((item:any) => <div key={item.product_name_snapshot}><span>{item.product_name_snapshot} × {item.quantity}</span><strong>₹{Number(item.line_total ?? 0).toFixed(2)}</strong></div>)}</div>
             {order.delivery_address_snapshot?.address_line && <p className="customer-order-address"><MapPin size={14}/>{order.delivery_address_snapshot.address_line}</p>}
             <div className="customer-order-bottom"><small>{new Date(order.created_at).toLocaleString()}</small><strong>₹{Number(order.total).toFixed(2)}</strong></div>
@@ -682,7 +682,7 @@ export default function App() {
           <button onClick={() => navigateCustomerPage('orders')}><PackageCheck size={17}/> View my orders <ChevronRight size={16}/></button>
           <button onClick={() => navigateCustomerPage('shop')}><Store size={17}/> Browse products <ChevronRight size={16}/></button>
           <button onClick={() => setCartOpen(true)}><ShoppingBag size={17}/> Open my cart <ChevronRight size={16}/></button>
-          {['admin','owner','super_admin'].includes(adminRole) && <button onClick={() => setAdminView(true)}><ShieldCheck size={17}/> Open admin panel <ChevronRight size={16}/></button>
+          {['admin','owner','super_admin'].includes(adminRole) && <button onClick={() => setAdminView(true)}><ShieldCheck size={17}/> Open admin panel <ChevronRight size={16}/></button>}
           <button onClick={() => navigateCustomerPage('updates')}><RefreshCw size={17}/> App updates & version <ChevronRight size={16}/></button>
         </section>
       </div>
