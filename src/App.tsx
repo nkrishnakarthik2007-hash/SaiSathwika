@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App as NativeApp } from '@capacitor/app';
@@ -45,6 +45,8 @@ export default function App() {
   const [coords, setCoords] = useState<{latitude:number;longitude:number}|null>(null);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
+  const [cartCloudUserId, setCartCloudUserId] = useState<string | null>(null);
+  const cartSyncQueue = useRef<Promise<void>>(Promise.resolve());
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [customerAddresses, setCustomerAddresses] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -183,6 +185,7 @@ export default function App() {
       } else {
         setAdminRole('customer');
         setAdminView(false);
+        setCartCloudUserId(null);
       }
     });
     return () => listener.subscription.unsubscribe();
@@ -269,9 +272,104 @@ export default function App() {
   const cartSubtotal = cartProducts.reduce((sum,p) => sum + Number(p.price) * (cart[p.id] ?? 0), 0);
   const changeQty = (id:string, delta:number) => setCart(current => {
     const next={...current}; const product=products.find(p=>p.id===id); const qty=(next[id] ?? 0)+delta;
-    if(qty<=0) delete next[id]; else if(product) next[id]=Math.min(qty,product.stock_quantity); 
+    if(qty<=0) delete next[id]; else if(product) next[id]=Math.min(qty,product.stock_quantity);
     return next;
   });
+
+  useEffect(() => {
+    const client = supabase;
+    const userId = session?.user.id;
+    if (!client || !userId) {
+      setCartCloudUserId(null);
+      return;
+    }
+
+    let active = true;
+    const restoreCart = async () => {
+      try {
+        const { data, error } = await client
+          .from('cart_items')
+          .select('product_id,quantity')
+          .eq('customer_id', userId);
+        if (error) throw error;
+
+        const remoteCart: Record<string, number> = {};
+        for (const item of data ?? []) {
+          remoteCart[item.product_id] = Number(item.quantity);
+        }
+
+        let localCart: Record<string, number> = {};
+        try {
+          const saved = localStorage.getItem('sai-sathwika-cart');
+          localCart = saved ? JSON.parse(saved) as Record<string, number> : {};
+        } catch {
+          localCart = {};
+        }
+
+        // Keep the cloud account as the source of truth, while carrying over
+        // any guest cart items the customer added before signing in.
+        const mergedCart = { ...remoteCart };
+        for (const [productId, quantity] of Object.entries(localCart)) {
+          if (!mergedCart[productId]) mergedCart[productId] = quantity;
+        }
+
+        if (!active) return;
+        setCart(mergedCart);
+        setCartCloudUserId(userId);
+        setNotice(Object.keys(remoteCart).length ? 'Your cloud cart has been restored.' : 'Your cart is now linked to your Google account.');
+      } catch (error) {
+        recordAppDiagnostic('Cloud cart restore failed: ' + (error instanceof Error ? error.message : String(error)), error instanceof Error ? error.stack : null);
+        if (active) setNotice('Could not sync your cloud cart yet. Your current cart remains saved on this device.');
+      }
+    };
+
+    void restoreCart();
+    return () => { active = false; };
+  }, [session?.user.id]);
+
+  useEffect(() => {
+    const client = supabase;
+    const userId = session?.user.id;
+    if (!client || !userId || cartCloudUserId !== userId) return;
+
+    const snapshot = { ...cart };
+    cartSyncQueue.current = cartSyncQueue.current
+      .then(async () => {
+        const rows = Object.entries(snapshot)
+          .filter(([, quantity]) => Number.isInteger(quantity) && quantity > 0)
+          .map(([productId, quantity]) => ({
+            customer_id: userId,
+            product_id: productId,
+            quantity: Math.min(50, quantity),
+            updated_at: new Date().toISOString(),
+          }));
+
+        if (rows.length) {
+          const { error } = await client.from('cart_items').upsert(rows, { onConflict: 'customer_id,product_id' });
+          if (error) throw error;
+        }
+
+        const { data: existing, error: lookupError } = await client
+          .from('cart_items')
+          .select('product_id')
+          .eq('customer_id', userId);
+        if (lookupError) throw lookupError;
+
+        const keep = new Set(rows.map(row => row.product_id));
+        const staleIds = (existing ?? []).map(row => row.product_id).filter(id => !keep.has(id));
+        if (staleIds.length) {
+          const { error } = await client
+            .from('cart_items')
+            .delete()
+            .eq('customer_id', userId)
+            .in('product_id', staleIds);
+          if (error) throw error;
+        }
+      })
+      .catch(error => {
+        recordAppDiagnostic('Cloud cart sync failed: ' + (error instanceof Error ? error.message : String(error)), error instanceof Error ? error.stack : null);
+      });
+  }, [cart, session?.user.id, cartCloudUserId]);
   async function loadOrders() {
     if (!supabase || !session) return;
     setOrdersLoading(true);
@@ -333,6 +431,8 @@ export default function App() {
     setCustomerPage('home');
     setCustomerAddresses([]);
     setCustomerOrders([]);
+    setCartCloudUserId(null);
+    setCart({});
     setNotice('You have signed out successfully.');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
