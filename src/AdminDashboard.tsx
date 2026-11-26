@@ -69,6 +69,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   const [storeLng,setStoreLng]=useState('');
   const [storeLocationBusy,setStoreLocationBusy]=useState(false);
   const [orders,setOrders]=useState<any[]>([]);
+  const [orderAssignments,setOrderAssignments]=useState<Record<string,string>>({});
   const [ordersBusy,setOrdersBusy]=useState(false);
   const [editingId,setEditingId]=useState<string|null>(null);
   const [editName,setEditName]=useState('');
@@ -92,7 +93,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   const [diagnosticsBusy,setDiagnosticsBusy]=useState(false);
   const [lastRefreshed,setLastRefreshed]=useState<Date|null>(null);
   const [inviteEmail,setInviteEmail]=useState('');
-  const [inviteRole,setInviteRole]=useState<'admin'|'owner'>('admin');
+  const [inviteRole,setInviteRole]=useState<'admin'|'owner'|'delivery_staff'>('admin');
   const [teamInvitations,setTeamInvitations]=useState<any[]>([]);
   const [teamBusy,setTeamBusy]=useState(false);
 
@@ -110,8 +111,17 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   async function refreshOrders(){
     if(!supabase)return;
     setOrdersBusy(true);
-    const {data,error}=await supabase.from('orders').select('id,order_number,status,total,payment_method,payment_status,created_at,customer_id,delivery_address_snapshot,profiles(full_name,phone),order_items(product_name_snapshot,quantity)').order('created_at',{ascending:false}).limit(50);
-    if(error)setMessage(error.message);else{setOrders(data??[]);setLastRefreshed(new Date());}
+    const [{data,error},{data:assignmentData,error:assignmentError}]=await Promise.all([
+      supabase.from('orders').select('id,order_number,status,total,payment_method,payment_status,created_at,customer_id,delivery_address_snapshot,profiles(full_name,phone),order_items(product_name_snapshot,quantity)').order('created_at',{ascending:false}).limit(50),
+      supabase.from('order_assignments').select('order_id,delivery_partner_id')
+    ]);
+    if(error)setMessage(error.message);
+    else{
+      setOrders(data??[]);
+      if(!assignmentError)setOrderAssignments(Object.fromEntries((assignmentData??[]).map((a:any)=>[a.order_id,a.delivery_partner_id])));
+      setLastRefreshed(new Date());
+    }
+    if(assignmentError)setMessage('Delivery assignments: '+assignmentError.message);
     setOrdersBusy(false);
   }
   async function refreshCustomers(){
@@ -140,7 +150,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     if(error||data?.error)setMessage(data?.error??error?.message??'Could not create invitation.');
     else{
       const inv=data.invitation;
-      const inviteMessage='You are invited to join Sai Sathwika as '+inv.role.toUpperCase()+'. Sign in with Google using exactly this email: '+inv.email+'. Your access will activate automatically. Invitation expires: '+new Date(inv.expires_at).toLocaleString()+'.';
+      const inviteMessage='You are invited to join Sai Sathwika as '+(inv.role==='delivery_staff'?'DELIVERY PARTNER':inv.role.toUpperCase())+'. Sign in with Google using exactly this email: '+inv.email+'. Your access will activate automatically. Invitation expires: '+new Date(inv.expires_at).toLocaleString()+'.';
       try{if(navigator.share)await navigator.share({title:'Sai Sathwika team invitation',text:inviteMessage});else await navigator.clipboard.writeText(inviteMessage);setMessage('Invitation created. Share the invitation message with '+inv.email+'.');}
       catch{try{await navigator.clipboard.writeText(inviteMessage);setMessage('Invitation created and message copied. Send it to '+inv.email+'.');}catch{setMessage('Invitation created for '+inv.email+'. Share the sign-in instructions manually.');}}
       setInviteEmail('');
@@ -251,8 +261,17 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   async function updateOrderStatus(id:string,currentStatus:string,status:string){
     if(!supabase)return;
     if(!orderStatusTransitions[currentStatus]?.includes(status)){setMessage('This order status change is not allowed.');return;}
+    if(status==='out_for_delivery'&&!orderAssignments[id]){setMessage('Assign a delivery partner before starting delivery.');return;}
     const {error}=await supabase.from('orders').update({status}).eq('id',id).eq('status',currentStatus);
     if(error)setMessage(error.message);else{setMessage('Order status updated.');void refreshOrders();}
+  }
+  async function assignDeliveryPartner(orderId:string,partnerId:string){
+    if(!supabase)return;
+    if(!partnerId){setMessage('Choose a delivery partner.');return;}
+    const {error}=await supabase.rpc('assign_delivery_partner',{p_order_id:orderId,p_delivery_partner_id:partnerId});
+    if(error)setMessage(error.message);
+    else{setMessage('Delivery partner assigned.');setOrderAssignments(current=>({...current,[orderId]:partnerId}));}
+    void refreshOrders();
   }
   async function addBrand(){
     if(!supabase||!newBrand.trim())return;
@@ -369,7 +388,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
           <section className="admin-card"><h2><Tags/> Brands & categories</h2><div className="inline-add"><input value={newBrand} onChange={e=>setNewBrand(e.target.value)} placeholder="New brand name"/><button onClick={addBrand}>Add</button></div><div className="inline-add"><input value={newCategory} onChange={e=>setNewCategory(e.target.value)} placeholder="New category"/><button onClick={addCategory}>Add</button></div><p className="admin-hint">Add a brand once, then select it for each product. This keeps the catalogue organised.</p></section>
         </div>
       </div><section className="admin-card inventory"><h2>Product inventory</h2>{products.length>0&&<div className="inventory-tools"><input value={inventorySearch} onChange={e=>setInventorySearch(e.target.value)} placeholder="Search products or brands..." aria-label="Search product inventory"/><label><input type="checkbox" checked={lowStockOnly} onChange={e=>setLowStockOnly(e.target.checked)}/> Low stock only</label></div>}{products.length===0?<p className="admin-hint">No products yet. Add your first product above.</p>:visibleInventory.length===0?<p className="admin-hint">No products match this search.</p>:visibleInventory.map(p=><div className="inventory-row" key={p.id}>{p.image_urls?.[0]&&<img className="inventory-thumb" src={p.image_urls[0]} alt="" loading="lazy"/>}<span><strong>{p.name}</strong><small>{p.brands?.[0]?.name??'No brand'} · {p.is_available?'Visible in shop':'Hidden from shop'}</small></span><b>₹{Number(p.price).toFixed(2)}</b><div className="stock-actions"><small>{p.stock_quantity} in stock {p.stock_quantity===0?'· Out of stock':p.stock_quantity<=5?'· Low stock':''}</small><button type="button" title="Edit product" onClick={()=>beginEdit(p)}><Pencil size={14}/> Edit</button><button type="button" title="Remove one unit" disabled={p.stock_quantity<=0} onClick={()=>void adjustStock(p.id,p.stock_quantity,-1)}>−1</button><button type="button" title="Add one unit" onClick={()=>void adjustStock(p.id,p.stock_quantity,1)}>+1</button><button type="button" title={p.is_available?'Hide product':'Show product'} onClick={()=>void toggleProduct(p.id,p.is_available)}>{p.is_available?'Hide':'Show'}</button></div>{editingId===p.id&&<div className="admin-edit-product"><label className="image-upload"><ImagePlus size={18}/><span>{editImage?editImage.name:'Replace product image (optional)'}</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setEditImage(e.target.files?.[0]??null)}/></label><label>Product name<input value={editName} onChange={e=>setEditName(e.target.value)}/></label><div className="admin-two"><label>Selling price (₹)<input type="number" min="0" step=".01" value={editPrice} onChange={e=>setEditPrice(e.target.value)}/></label><label>MRP (₹)<input type="number" min="0" step=".01" value={editMrp} onChange={e=>setEditMrp(e.target.value)}/></label><label>Stock quantity<input type="number" min="0" step="1" value={editStock} onChange={e=>setEditStock(e.target.value)}/></label></div><div className="stock-actions"><button type="button" disabled={editBusy} onClick={()=>void saveProductEdit(p.id)}>{editBusy?'Saving…':'Save changes'}</button><button type="button" onClick={()=>setEditingId(null)}><X size={14}/> Cancel</button></div></div>}</div>)}</section></div>}
-      {activeTab==='orders'&&      <section className="admin-card inventory"><h2><ClipboardList/> Customer orders</h2>{ordersBusy?<p className="admin-hint">Loading orders…</p>:orders.length===0?<p className="admin-hint">No customer orders yet.</p>:orders.map(o=><article className="admin-order-row" key={o.id}><div className="admin-order-main"><strong>Order #{o.order_number}</strong><small>{o.profiles?.full_name??o.delivery_address_snapshot?.recipient_name??"Customer"} · {new Date(o.created_at).toLocaleString()}</small><small>{(o.order_items??[]).map((i:any)=>i.product_name_snapshot+" × "+i.quantity).join(", ")}</small><small>{o.delivery_address_snapshot?.address_line??"Address unavailable"}</small></div><div className="admin-order-actions"><b>₹{Number(o.total).toFixed(2)}</b><select aria-label={"Status for order "+o.order_number} value={o.status} disabled={o.status==='delivered'||o.status==='cancelled'} onChange={e=>void updateOrderStatus(o.id,o.status,e.target.value)}>{[o.status,...(orderStatusTransitions[o.status]??[])].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div></article>)}</section>}
+      {activeTab==='orders'&&<section className="admin-card inventory"><h2><ClipboardList/> Customer orders</h2>{ordersBusy?<p className="admin-hint">Loading orders…</p>:orders.length===0?<p className="admin-hint">No customer orders yet.</p>:orders.map(o=><article className="admin-order-row" key={o.id}><div className="admin-order-main"><strong>Order #{o.order_number}</strong><small>{o.profiles?.full_name??o.delivery_address_snapshot?.recipient_name??"Customer"} · {new Date(o.created_at).toLocaleString()}</small><small>{(o.order_items??[]).map((i:any)=>i.product_name_snapshot+" × "+i.quantity).join(", ")}</small><small>{o.delivery_address_snapshot?.address_line??"Address unavailable"}</small></div><div className="admin-order-actions"><b>₹{Number(o.total).toFixed(2)}</b>{['confirmed','preparing','out_for_delivery'].includes(o.status)&&<select aria-label={"Delivery partner for order "+o.order_number} value={orderAssignments[o.id]??''} onChange={e=>void assignDeliveryPartner(o.id,e.target.value)}><option value="">Assign delivery partner</option>{customers.filter((p:any)=>p.role==='delivery_staff'&&p.is_active).map((p:any)=><option key={p.id} value={p.id}>{p.full_name||'Delivery partner'}{p.phone?' · '+p.phone:''}</option>)}</select>}<select aria-label={"Status for order "+o.order_number} value={o.status} disabled={o.status==='delivered'||o.status==='cancelled'} onChange={e=>void updateOrderStatus(o.id,o.status,e.target.value)}>{[o.status,...(orderStatusTransitions[o.status]??[])].map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></div></article>)}</section>}
       {activeTab==='customers'&&<section className="admin-card inventory">
   <div className="admin-section-heading"><div><h2><Users/> Customers</h2><p>Customer accounts connected through Google sign-in.</p></div><button className="admin-refresh-button" type="button" onClick={()=>void refreshCustomers()}><RefreshCw size={15}/> Refresh</button></div>
   <div className="inventory-tools"><input value={customerSearch} onChange={e=>setCustomerSearch(e.target.value)} placeholder="Search customers by name, phone or role..."/><span className="admin-hint">{visibleCustomers.length} customers</span></div>
