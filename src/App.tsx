@@ -133,7 +133,9 @@ export default function App() {
     let active = true;
     let firstFrame: number | undefined;
     let secondFrame: number | undefined;
+    let revealTimer: number | undefined;
     let removeTimer: number | undefined;
+    const bootStartedAt = Date.now();
     const bootScreen = document.getElementById('app-boot-screen');
 
     const revealRenderedApp = () => {
@@ -148,16 +150,22 @@ export default function App() {
     firstFrame = window.requestAnimationFrame(() => {
       secondFrame = window.requestAnimationFrame(() => {
         if (!active) return;
-        if (Capacitor.isNativePlatform()) {
-          void SplashScreen.hide({ fadeOutDuration: 260 })
-            .then(() => window.requestAnimationFrame(revealRenderedApp))
-            .catch((error) => {
-              recordAppDiagnostic('Native splash handoff failed: ' + String(error));
-              revealRenderedApp();
-            });
-        } else {
-          revealRenderedApp();
-        }
+        // Keep the branded launch visible long enough to feel intentional,
+        // while avoiding a long wait if the store is still loading data.
+        const reveal = () => {
+          if (Capacitor.isNativePlatform()) {
+            void SplashScreen.hide({ fadeOutDuration: 420 })
+              .then(() => window.requestAnimationFrame(revealRenderedApp))
+              .catch((error) => {
+                recordAppDiagnostic('Native splash handoff failed: ' + String(error));
+                revealRenderedApp();
+              });
+          } else {
+            revealRenderedApp();
+          }
+        };
+        const remaining = Math.max(0, 1150 - (Date.now() - bootStartedAt));
+        revealTimer = window.setTimeout(reveal, remaining);
       });
     });
 
@@ -165,6 +173,7 @@ export default function App() {
       active = false;
       if (firstFrame !== undefined) window.cancelAnimationFrame(firstFrame);
       if (secondFrame !== undefined) window.cancelAnimationFrame(secondFrame);
+      if (revealTimer !== undefined) window.clearTimeout(revealTimer);
       if (removeTimer !== undefined) window.clearTimeout(removeTimer);
     };
   }, []);
@@ -669,7 +678,7 @@ export default function App() {
       <button onClick={() => setCartOpen(true)}><ShoppingBag size={19}/><span>Cart{cartCount ? ' · ' + cartCount : ''}</span></button>
     </nav>
 
-    <footer><div className="shell footer-inner"><div className="brand footer-brand"><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></div><p>Made with care for your neighbourhood.</p><small>© {new Date().getFullYear()} Sai Sathwika</small></div></footer>
+    <footer><div className="shell footer-inner"><div className="brand footer-brand"><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></div><p>Freshness for your family, delivered with care.</p><div className="footer-creator"><strong>Made with love by Krishna Karthik</strong><span>Created in Andhra Pradesh, India</span><small>© {new Date().getFullYear()} Sai Sathwika</small></div></div></footer>
 
     {cartOpen && <div className="modal-backdrop" onClick={()=>setCartOpen(false)}><section className="cart-modal" onClick={e=>e.stopPropagation()}>
       <div className="cart-modal-head"><div><span className="eyebrow">YOUR BASKET</span><h2>Shopping cart <small>({cartCount} items)</small></h2></div><button className="modal-close" onClick={()=>setCartOpen(false)}><X/></button></div>
