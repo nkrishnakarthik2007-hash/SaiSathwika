@@ -22,6 +22,9 @@
     #app-boot-screen .boot-track{position:relative;width:112px;height:3px;margin-top:34px;overflow:hidden;border-radius:9px;background:#ffffff35}
     #app-boot-screen .boot-track span{display:block;width:42%;height:100%;border-radius:9px;background:linear-gradient(90deg,#22d3ee,#c084fc);animation:boot-progress 1.35s ease-in-out infinite}
     #app-boot-screen .boot-caption{position:absolute;bottom:max(30px,env(safe-area-inset-bottom));font-size:11px;color:#aebce9}
+    #app-boot-error{display:none;position:relative;z-index:2;width:min(88vw,380px);margin-top:22px;padding:16px 18px;border:1px solid #ffffff30;border-radius:16px;background:#ffffff12;backdrop-filter:blur(14px);text-align:center;color:#eef2ff}
+    #app-boot-error p{margin:0 0 12px;font-size:12px;line-height:1.6;color:#d5defc}
+    #app-boot-error button{border:0;border-radius:10px;background:#fff;color:#17224f;padding:10px 18px;font:700 12px system-ui;cursor:pointer}
     #app-boot-screen.app-boot-screen-hidden{opacity:0;pointer-events:none}
     @keyframes boot-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
     @keyframes boot-progress{0%{transform:translateX(-115%)}100%{transform:translateX(290%)}}
@@ -31,6 +34,14 @@
     (() => {
       const key = 'sai-sathwika-diagnostics-v1';
       const redact = (value) => String(value || '').replace(/(access_token|refresh_token|client_secret|code_verifier|apikey)(=|:)([^&\s]+)/gi, '$1$2[redacted]').slice(0, 5000);
+      const showBootError = (message) => {
+        const errorPanel = document.getElementById('app-boot-error');
+        const errorText = document.getElementById('app-boot-error-message');
+        const caption = document.getElementById('app-boot-caption');
+        if (caption) caption.textContent = 'Sai Sathwika could not start correctly';
+        if (errorText) errorText.textContent = message || 'A startup problem was detected. Your error details have been saved on this device.';
+        if (errorPanel) errorPanel.style.display = 'block';
+      };
       const capture = (message, stack) => {
         try {
           const previous = JSON.parse(localStorage.getItem(key) || '[]');
@@ -45,12 +56,18 @@
           });
           localStorage.setItem(key, JSON.stringify(records.slice(-60)));
         } catch (_) {}
+        showBootError('We found a startup problem and saved its details. Tap “Try again” to reload the store.');
       };
       window.addEventListener('error', (event) => capture(event.message || 'A startup script failed to load', event.error && event.error.stack));
       window.addEventListener('unhandledrejection', (event) => {
         const reason = event.reason;
         capture(reason && reason.message ? reason.message : String(reason || 'Unhandled startup promise'), reason && reason.stack);
       });
+      window.setTimeout(() => {
+        if (document.body.dataset.appReady !== 'true') {
+          showBootError('The store is taking longer than expected to load. Your app is still here; try reloading it.');
+        }
+      }, 18000);
     })();
   </script>
 </head>
@@ -68,7 +85,11 @@
     <div class="boot-name">Sai Sathwika</div>
     <div class="boot-tagline">FRESHNESS AT YOUR DOORSTEP</div>
     <div class="boot-track"><span></span></div>
-    <div class="boot-caption">Preparing your store…</div>
+    <div id="app-boot-caption" class="boot-caption">Preparing your store…</div>
+    <div id="app-boot-error" role="alert" aria-live="assertive">
+      <p id="app-boot-error-message">We found a startup problem. Your error details will be saved on this device.</p>
+      <button type="button" onclick="window.location.reload()">Try again</button>
+    </div>
   </div>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
