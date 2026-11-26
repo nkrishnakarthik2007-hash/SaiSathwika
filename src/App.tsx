@@ -113,6 +113,58 @@ export default function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'android' || !supabase) return;
+    let active = true;
+    let appUrlListener: { remove: () => Promise<void> } | undefined;
+    let handledCode: string | null = null;
+
+    const handleAuthCallback = async (rawUrl: string) => {
+      try {
+        const callbackUrl = new URL(rawUrl);
+        if (callbackUrl.protocol !== 'in.saisathwika.shop:' || callbackUrl.hostname !== 'login-callback') return;
+
+        const callbackParams = new URLSearchParams(callbackUrl.search);
+        const hashParams = new URLSearchParams(callbackUrl.hash.replace(/^#/, ''));
+        const authError = callbackParams.get('error_description') || callbackParams.get('error')
+          || hashParams.get('error_description') || hashParams.get('error');
+        if (authError) throw new Error(authError);
+
+        const code = callbackParams.get('code') || hashParams.get('code');
+        if (!code || code === handledCode) return;
+        handledCode = code;
+
+        await Browser.close().catch(() => undefined);
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) throw error;
+        if (active) {
+          setLoginOpen(false);
+          setNotice('Google sign-in successful.');
+        }
+      } catch (error) {
+        if (active) setNotice(error instanceof Error ? error.message : 'Google sign-in could not be completed.');
+      }
+    };
+
+    void NativeApp.addListener('appUrlOpen', ({ url }) => {
+      void handleAuthCallback(url);
+    }).then((listener) => {
+      appUrlListener = listener;
+      if (!active) void listener.remove();
+    });
+
+    void NativeApp.getLaunchUrl().then((launch) => {
+      if (launch?.url) void handleAuthCallback(launch.url);
+    });
+
+    return () => {
+      active = false;
+      void appUrlListener?.remove();
+    };
+  }, []);
+
+  
+
   async function loadRole(userId: string) {
     if(!supabase)return;
     const {data}=await supabase.from('profiles').select('role').eq('id',userId).maybeSingle();
@@ -202,11 +254,28 @@ export default function App() {
 
   async function signIn() {
     if (!supabase) { setNotice('The shop database is being connected. Please check back soon.'); return; }
-    const { error } = await supabase.auth.signInWithOAuth({
+    const isAndroid = Capacitor.getPlatform() === 'android';
+    const redirectTo = isAndroid
+      ? 'in.saisathwika.shop://login-callback'
+      : window.location.origin;
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: {
+        redirectTo,
+        skipBrowserRedirect: isAndroid,
+      },
     });
-    if (error) setNotice(error.message);
+    if (error) {
+      setNotice(error.message);
+      return;
+    }
+    if (isAndroid && data.url) {
+      try {
+        await Browser.open({ url: data.url });
+      } catch (openError) {
+        setNotice(openError instanceof Error ? openError.message : 'Could not open Google sign-in.');
+      }
+    }
   }
 
   if(adminView && ['admin','super_admin'].includes(adminRole)) return <AdminDashboard onBack={()=>setAdminView(false)}/>;
