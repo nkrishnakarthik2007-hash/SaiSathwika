@@ -223,12 +223,12 @@ export default function App() {
   useEffect(() => {
     if (!adminPortalRequested || !sessionResolved) return;
     if (!session) {
-      setLoginOpen(true);
+      setCustomerPage('login');
       return;
     }
     if (!roleResolved) return;
     if (['admin','owner','super_admin','delivery_staff'].includes(adminRole)) {
-      setLoginOpen(false);
+      setCustomerPage('home');
       setAdminView(true);
     } else {
       setAdminView(false);
@@ -283,7 +283,7 @@ export default function App() {
         const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
         if (error) throw error;
         if (active) {
-          setLoginOpen(false);
+          setCustomerPage('home');
           setNotice('Google sign-in successful.');
         }
       } catch (error) {
@@ -480,7 +480,7 @@ export default function App() {
 
   function navigateCustomerPage(page: CustomerPage) {
     if ((page === 'orders' || page === 'profile') && !session) {
-      setLoginOpen(true);
+      setCustomerPage('login');
       setNotice('Sign in with Google to view your account and orders.');
       return;
     }
@@ -520,7 +520,7 @@ export default function App() {
   }
   async function placeOrder() {
     if(storeAccepting===false){setNotice('Online ordering is currently closed. Please check back later.');return;}
-    if(!supabase || !session){setCartOpen(false);setLoginOpen(true);return;}
+    if(!supabase || !session){setCartOpen(false);setCustomerPage('login');return;}
     if(!cartProducts.length){setNotice('Your cart is empty.');return;}
     if(!address.recipient_name.trim() || !address.phone.trim() || !address.address_line.trim()){setNotice('Enter your name, phone number and delivery address.');return;}
     const digits=address.phone.replace(/\D/g,'');
@@ -606,7 +606,7 @@ export default function App() {
       </nav>
       <div className="header-actions">
         {['admin','super_admin'].includes(adminRole) && <button className="account admin-shortcut" onClick={()=>setAdminView(true)}><ShieldCheck size={17}/> Admin</button>}
-        <button className="profile-trigger" aria-label={session ? 'Open my profile' : 'Sign in'} onClick={() => session ? navigateCustomerPage('profile') : setLoginOpen(true)}>
+        <button className="profile-trigger" aria-label={session ? 'Open my profile' : 'Sign in'} onClick={() => session ? navigateCustomerPage('profile') : setCustomerPage('login')}>
           {session?.user.user_metadata?.avatar_url || session?.user.user_metadata?.picture
             ? <img src={session.user.user_metadata.avatar_url || session.user.user_metadata.picture} alt="" referrerPolicy="no-referrer"/>
             : <UserRound size={19}/>}
