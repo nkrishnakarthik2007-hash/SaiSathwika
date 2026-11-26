@@ -43,7 +43,7 @@ async function optimizeProductImage(file: File): Promise<File> {
     bitmap.close();
   }
 }
-export default function AdminDashboard({ onBack }: { onBack: () => void }) {
+export default function AdminDashboard({ onBack, onSignOut }: { onBack: () => void; onSignOut: () => void }) {
   const [brands,setBrands]=useState<Option[]>([]);
   const [categories,setCategories]=useState<Option[]>([]);
   const [products,setProducts]=useState<any[]>([]);
@@ -297,7 +297,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   const pendingOrders=orders.filter(o=>!['delivered','cancelled'].includes(o.status)).length;
 
   return <main className="admin-page">
-    <header className="admin-top"><button onClick={onBack}><ArrowLeft size={17}/> Storefront</button><div><ShieldCheck size={19}/> Sai Sathwika · Admin</div><button className="admin-refresh-button" type="button" onClick={()=>{void refresh();void refreshOrders();}}><RefreshCw size={15}/> Refresh</button></header>
+    <header className="admin-top"><button onClick={onBack}><ArrowLeft size={17}/> Storefront</button><div><ShieldCheck size={19}/> Sai Sathwika · Admin</div><div className="admin-top-actions"><button className="admin-refresh-button" type="button" onClick={()=>{void refresh();void refreshOrders();}}><RefreshCw size={15}/> Refresh</button><button className="admin-signout" type="button" onClick={onSignOut}><LogOut size={15}/> Sign out</button></div></header>
     <section className="admin-shell">
       <div className="admin-heading"><span className="eyebrow">STORE CONTROL CENTRE</span><h1>{activeTab==='overview'?'Good morning, Admin.':adminTabs.find(tab=>tab.id===activeTab)?.label}</h1><p>{activeTab==='overview'?'Your ecommerce operations, in one place.':'Manage '+(adminTabs.find(tab=>tab.id===activeTab)?.label.toLowerCase()??'store operations')+' for Sai Sathwika.'}</p></div>
       <nav className="admin-navigation" aria-label="Admin sections">{adminTabs.map(tab=>{const Icon=tab.icon;return <button key={tab.id} className={activeTab===tab.id?'active':''} onClick={()=>setActiveTab(tab.id)}><Icon size={16}/><span>{tab.label}</span></button>;})}</nav>
