@@ -16,6 +16,7 @@ Deno.serve(async(req:Request)=>{
   if(callerError||!caller?.is_active)return new Response(JSON.stringify({error:"Your account is inactive."}),{status:403,headers:cors});
   const body=await req.json().catch(()=>({})),action=String(body.action??"");
   if(action==="accept"){
+   if(caller.role!=="customer")return new Response(JSON.stringify({accepted:false,role:caller.role}),{headers:cors});
    const {data:invite,error}=await db.from("team_invitations").select("id,role").eq("email",user.email.toLowerCase()).is("accepted_at",null).is("revoked_at",null).gt("expires_at",new Date().toISOString()).order("created_at",{ascending:false}).limit(1).maybeSingle();
    if(error)throw error;if(!invite)return new Response(JSON.stringify({accepted:false,role:caller.role}),{headers:cors});
    const {error:updateError}=await db.from("profiles").update({role:invite.role,is_active:true}).eq("id",user.id);if(updateError)throw updateError;
@@ -24,19 +25,23 @@ Deno.serve(async(req:Request)=>{
   }
   if(!["super_admin","owner"].includes(caller.role))return new Response(JSON.stringify({error:"Only Super Admin or Owner can manage invitations."}),{status:403,headers:cors});
   if(action==="list"){
-   const {data,error}=await db.from("team_invitations").select("id,email,role,created_at,expires_at,accepted_at,revoked_at").order("created_at",{ascending:false}).limit(100);if(error)throw error;
+   let listQuery=db.from("team_invitations").select("id,email,role,created_at,expires_at,accepted_at,revoked_at").order("created_at",{ascending:false}).limit(100);
+   if(caller.role==="owner")listQuery=listQuery.eq("invited_by",user.id);
+   const {data,error}=await listQuery;if(error)throw error;
    return new Response(JSON.stringify({invitations:data??[]}),{headers:cors});
   }
   if(action==="revoke"){
    const id=String(body.id??"");if(!id)return new Response(JSON.stringify({error:"Invitation ID required."}),{status:400,headers:cors});
-   const {error}=await db.from("team_invitations").update({revoked_at:new Date().toISOString()}).eq("id",id).is("accepted_at",null).is("revoked_at",null);if(error)throw error;
+   let revokeQuery=db.from("team_invitations").update({revoked_at:new Date().toISOString()}).eq("id",id).is("accepted_at",null).is("revoked_at",null);
+   if(caller.role==="owner")revokeQuery=revokeQuery.eq("invited_by",user.id).in("role",["admin","delivery_staff"]);
+   const {error}=await revokeQuery;if(error)throw error;
    return new Response(JSON.stringify({success:true}),{headers:cors});
   }
   if(action==="invite"){
    const email=String(body.email??"").trim().toLowerCase(),role=String(body.role??"");
    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return new Response(JSON.stringify({error:"Enter a valid email address."}),{status:400,headers:cors});
-   if(!["admin","owner"].includes(role))return new Response(JSON.stringify({error:"Choose Admin or Owner."}),{status:400,headers:cors});
-   if(caller.role==="owner"&&role!=="admin")return new Response(JSON.stringify({error:"Owners can invite Admins only."}),{status:403,headers:cors});
+   if(!["admin","owner","delivery_staff"].includes(role))return new Response(JSON.stringify({error:"Choose Admin, Owner or Delivery Partner."}),{status:400,headers:cors});
+   if(caller.role==="owner"&&role==="owner")return new Response(JSON.stringify({error:"Owners cannot invite another Owner."}),{status:403,headers:cors});
    if(email===user.email.toLowerCase())return new Response(JSON.stringify({error:"You cannot invite your own account."}),{status:400,headers:cors});
    const {data:existingUsers}=await db.auth.admin.listUsers({page:1,perPage:1000});
    const existing=existingUsers?.users?.find(x=>x.email?.toLowerCase()===email);
