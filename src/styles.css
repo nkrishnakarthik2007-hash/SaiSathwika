@@ -388,3 +388,31 @@ footer{background:linear-gradient(110deg,#edf5e7,#f8f7ed)!important;border-top:1
 .delivery-message{padding:12px 14px;border-radius:12px;background:#fff3dc;color:#775b24;font-size:13px;margin:12px 0}
 .delivery-privacy-note{max-width:860px;margin:20px auto;padding:0 20px;color:#849084;font-size:12px;line-height:1.6}
 @media(max-width:600px){.delivery-header{height:66px;padding:0 16px}.delivery-welcome,.delivery-list{margin:18px auto;padding:0 14px}.delivery-welcome{padding:22px 18px}.delivery-order-card{padding:16px}.delivery-actions>*{flex:1}.delivery-actions .delivery-primary{margin-left:0}.delivery-list-heading h2{font-size:22px}}
+
+/* Dedicated sign-in and app update pages */
+.dedicated-login-page{min-height:calc(100vh - 150px);max-width:980px;margin:0 auto;padding:28px 20px 70px;display:flex;flex-direction:column}
+.login-back-button{display:inline-flex;align-items:center;gap:8px;width:max-content;border:1px solid #e1e9dc;border-radius:12px;background:#fffdf8;color:#45694a;padding:10px 14px;font:700 12px 'DM Sans';cursor:pointer}
+.dedicated-login-card{width:min(100%,480px);margin:auto;padding:42px 38px;text-align:center;border:1px solid #e4ecdf;border-radius:26px;background:linear-gradient(145deg,#fffefa,#f4f8ef);box-shadow:0 22px 65px #244b3010}
+.dedicated-login-card .login-logo{width:68px;height:68px;margin:0 auto 22px;border-radius:22px;display:grid;place-items:center;background:linear-gradient(145deg,#a8d39b,#23864a 62%,#d4b65d);color:#fff;font:800 38px 'Playfair Display';box-shadow:0 12px 30px #28754125}
+.dedicated-login-card h1{margin:12px 0;color:#1c4c30;font:700 clamp(28px,5vw,38px) 'Playfair Display';line-height:1.15}
+.dedicated-login-card>p{margin:0 auto 25px;max-width:360px;color:#728174;font-size:14px;line-height:1.7}
+.dedicated-login-card .google-button{width:100%;max-width:340px;justify-content:center;min-height:52px;border-radius:13px}
+.dedicated-login-card>small{display:block;margin:15px auto 0;max-width:340px;color:#8a9689;font-size:11px;line-height:1.6}
+.login-benefits{display:flex;justify-content:center;gap:15px;flex-wrap:wrap;margin-top:28px;padding-top:20px;border-top:1px solid #e7eee2}
+.login-benefits span{display:flex;align-items:center;gap:6px;color:#66816a;font-size:10px;font-weight:700}
+.login-benefits svg{color:#4d8954}
+.app-updates-page{max-width:860px}
+.app-updates-page>.login-back-button{margin-bottom:25px}
+.app-version-card{display:flex;align-items:center;gap:17px;margin:18px 0;padding:22px}
+.app-version-icon{width:52px;height:52px;flex-shrink:0;border-radius:16px;display:grid;place-items:center;background:#eaf4e5;color:#287541}
+.app-version-card h2,.app-update-check-card h2{margin:5px 0;color:#244b30;font-size:22px}
+.app-version-card p,.app-update-check-card>p{margin:4px 0;color:#788779;font-size:13px;line-height:1.6}
+.app-update-check-card{padding:24px}
+.app-release-notes{margin:18px 0;padding:14px;border:1px solid #e6eee2;border-radius:12px;background:#fbfdf8;color:#4d654e;font-size:12px;line-height:1.6;white-space:pre-wrap}
+.app-release-notes p{margin:8px 0 0}
+.app-update-action{margin-top:17px;min-height:46px;padding:0 22px}
+.app-update-progress{height:8px;margin-top:15px;border-radius:20px;background:#e8eee3;overflow:hidden}
+.app-update-progress span{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#237b43,#d0ad4f);transition:width .2s ease}
+.app-update-check-card>small{display:block;margin-top:12px;color:#879286;font-size:11px}
+.footer-update-link{border:0;background:transparent;color:#287541;text-decoration:underline;text-underline-offset:3px;font:700 11px 'DM Sans';cursor:pointer}
+@media(max-width:600px){.dedicated-login-page{min-height:calc(100vh - 110px);padding:18px 14px 40px}.dedicated-login-card{padding:32px 20px;border-radius:22px}.login-benefits{gap:10px}.app-version-card{padding:18px}.app-update-check-card{padding:18px}.app-update-action{width:100%}}
