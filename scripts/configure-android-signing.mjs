@@ -21,7 +21,7 @@ if (!gradle.includes('signingConfigs {')) {
 }
 
 const currentBuildTypesAt = gradle.indexOf('buildTypes', androidOpen);
-const releaseMatch = /release\\s*\\{/.exec(gradle.slice(currentBuildTypesAt));
+const releaseMatch = /release\s*\{/.exec(gradle.slice(currentBuildTypesAt));
 if (!releaseMatch) throw new Error('Could not find release build type inside buildTypes.');
 const releaseOpen = currentBuildTypesAt + releaseMatch.index + releaseMatch[0].lastIndexOf('{');
 let depth = 0, releaseClose = -1;
