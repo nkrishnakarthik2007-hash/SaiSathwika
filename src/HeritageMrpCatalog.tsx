@@ -9,10 +9,13 @@ type MrpRow = {
 
 // Transcribed from Heritage Foods' official Andhra Pradesh circular dated 21-Sep-2025.
 // These are historical reference MRPs effective 22-Sep-2025, not a live/current price feed.
-const cowGheeImage = 'https://www.heritagefoods.in/static/images/detailslider/ghee/cow-ghee1.png';
+const cowGheeImage = 'https://cdn.dmart.in/images/products/DEC110003150xx26DEC22_5_B.jpg';
+const cookingButterImage = 'https://www.jiomart.com/images/product/original/490440260/heritage-white-butter-200-g-carton-product-images-o490440260-p591013535-4-202203151053.jpg?im=Resize%3D%28420%2C420%29';
+const cheeseSlicesImage = 'https://www.bbassets.com/media/uploads/p/xl/40209533_3-heritage-cheese-slices.jpg';
+const milkImage = 'https://www.heritagefoods.in/static/images/detailslider/milk/farm-fresh-milk-big.png';
 const rows: MrpRow[] = [
-  {code:'CB-200',product:'Cooking Butter',packType:'Carton',packSize:'200 g',oldMrp:130,mrp:120,category:'Butter'},
-  {code:'CB-500',product:'Cooking Butter',packType:'Carton',packSize:'500 g',oldMrp:320,mrp:300,category:'Butter'},
+  {code:'CB-200',product:'Cooking Butter',packType:'Carton',packSize:'200 g',oldMrp:130,mrp:120,category:'Butter',image:cookingButterImage},
+  {code:'CB-500',product:'Cooking Butter',packType:'Carton',packSize:'500 g',oldMrp:320,mrp:300,category:'Butter',image:cookingButterImage},
   {code:'PTB-100',product:'PT Butter',packType:'Carton',packSize:'100 g',oldMrp:62,mrp:58,category:'Butter'},
   {code:'PTB-500',product:'PT Butter',packType:'Carton',packSize:'500 g',oldMrp:305,mrp:285,category:'Butter'},
   {code:'CG-PP-200',product:'Cow Ghee',packType:'PP pouch',packSize:'200 ml',oldMrp:155,mrp:145,category:'Ghee',image:cowGheeImage},
@@ -43,24 +46,24 @@ const rows: MrpRow[] = [
   {code:'CC-TIN-180',product:'Cold Coffee',packType:'Tin',packSize:'180 ml',oldMrp:50,mrp:50,grammage:'190 ml',category:'Beverages'},
   {code:'CC-PP-170',product:'Cold Coffee',packType:'PP pack',packSize:'170 ml',oldMrp:35,mrp:35,grammage:'180 ml',category:'Beverages'},
   {code:'CC-SIG-170',product:'Cold Coffee',packType:'SIG pack',packSize:'170 ml',oldMrp:35,mrp:35,grammage:'180 ml',category:'Beverages'},
-  {code:'CHEESE-S-100',product:'Cheese',packType:'Slices',packSize:'100 g',oldMrp:80,mrp:75,category:'Cheese'},
-  {code:'CHEESE-S-200',product:'Cheese',packType:'Slices',packSize:'200 g',oldMrp:145,mrp:135,category:'Cheese'},
-  {code:'CHEESE-S-480',product:'Cheese',packType:'Slices',packSize:'480 g',oldMrp:295,mrp:275,category:'Cheese'},
+  {code:'CHEESE-S-100',product:'Cheese',packType:'Slices',packSize:'100 g',oldMrp:80,mrp:75,category:'Cheese',image:cheeseSlicesImage},
+  {code:'CHEESE-S-200',product:'Cheese',packType:'Slices',packSize:'200 g',oldMrp:145,mrp:135,category:'Cheese',image:cheeseSlicesImage},
+  {code:'CHEESE-S-480',product:'Cheese',packType:'Slices',packSize:'480 g',oldMrp:295,mrp:275,category:'Cheese',image:cheeseSlicesImage},
   {code:'CHEESE-C-200',product:'Cheese',packType:'Cubes',packSize:'200 g',oldMrp:145,mrp:135,category:'Cheese'},
   {code:'CHEESE-C-120',product:'Cheese',packType:'Cubes',packSize:'120 g',oldMrp:95,mrp:90,category:'Cheese'},
   {code:'CHEESE-B-200',product:'Cheese',packType:'Blocks',packSize:'200 g',oldMrp:135,mrp:125,category:'Cheese'},
   {code:'CHEESE-B-400',product:'Cheese',packType:'Blocks',packSize:'400 g',oldMrp:245,mrp:230,category:'Cheese'},
   {code:'CHEESE-B-1000',product:'Cheese',packType:'Blocks',packSize:'1,000 g',oldMrp:555,mrp:520,category:'Cheese'},
   {code:'CHEESE-M-500',product:'Cheese',packType:'Mozzarella',packSize:'500 g',oldMrp:300,mrp:280,category:'Cheese'},
-  {code:'UHT-T-1000',product:'UHT Milk',packType:'Tetra pack',packSize:'1,000 ml',oldMrp:75,mrp:72,category:'Milk'},
-  {code:'UHT-T-200',product:'UHT Milk',packType:'Tetra pack',packSize:'200 ml',oldMrp:16,mrp:15,category:'Milk'},
-  {code:'AP-UHT-TM-475',product:'AP Special UHT Toned Milk',packType:'Special TM',packSize:'475 ml',oldMrp:29,mrp:28,grammage:'480 ml',category:'Milk'},
-  {code:'AP-UHT-TM-170',product:'AP Special UHT Toned Milk',packType:'Special TM',packSize:'170 ml',oldMrp:12,mrp:12,grammage:'175 ml',category:'Milk'},
-  {code:'AP-UHT-DTM-475',product:'AP Special UHT Double Toned Milk',packType:'Special DTM',packSize:'475 ml',oldMrp:27,mrp:26,grammage:'480 ml',category:'Milk'},
-  {code:'AP-UHT-DTMC-170',product:'AP Special UHT Double Toned Cow Milk',packType:'Special DTM Cow',packSize:'170 ml',oldMrp:12,mrp:12,grammage:'175 ml',category:'Milk'},
-  {code:'AP-UHT-DTM-80',product:'AP Special UHT Double Toned Milk',packType:'Special DTM',packSize:'80 ml',oldMrp:8,mrp:8,grammage:'85 ml',category:'Milk'},
-  {code:'AP-UHT-DTM-135',product:'AP Special UHT Double Toned Milk',packType:'Special DTM',packSize:'135 ml',oldMrp:10,mrp:10,grammage:'140 ml',category:'Milk'},
-  {code:'AP-UHT-TM-500',product:'AP Special UHT Toned Milk',packType:'Special TM',packSize:'500 ml',oldMrp:30,mrp:29,grammage:'500 ml',category:'Milk'},
+  {code:'UHT-T-1000',product:'UHT Milk',packType:'Tetra pack',packSize:'1,000 ml',oldMrp:75,mrp:72,category:'Milk',image:milkImage},
+  {code:'UHT-T-200',product:'UHT Milk',packType:'Tetra pack',packSize:'200 ml',oldMrp:16,mrp:15,category:'Milk',image:milkImage},
+  {code:'AP-UHT-TM-475',product:'AP Special UHT Toned Milk',packType:'Special TM',packSize:'475 ml',oldMrp:29,mrp:28,grammage:'480 ml',category:'Milk',image:milkImage},
+  {code:'AP-UHT-TM-170',product:'AP Special UHT Toned Milk',packType:'Special TM',packSize:'170 ml',oldMrp:12,mrp:12,grammage:'175 ml',category:'Milk',image:milkImage},
+  {code:'AP-UHT-DTM-475',product:'AP Special UHT Double Toned Milk',packType:'Special DTM',packSize:'475 ml',oldMrp:27,mrp:26,grammage:'480 ml',category:'Milk',image:milkImage},
+  {code:'AP-UHT-DTMC-170',product:'AP Special UHT Double Toned Cow Milk',packType:'Special DTM Cow',packSize:'170 ml',oldMrp:12,mrp:12,grammage:'175 ml',category:'Milk',image:milkImage},
+  {code:'AP-UHT-DTM-80',product:'AP Special UHT Double Toned Milk',packType:'Special DTM',packSize:'80 ml',oldMrp:8,mrp:8,grammage:'85 ml',category:'Milk',image:milkImage},
+  {code:'AP-UHT-DTM-135',product:'AP Special UHT Double Toned Milk',packType:'Special DTM',packSize:'135 ml',oldMrp:10,mrp:10,grammage:'140 ml',category:'Milk',image:milkImage},
+  {code:'AP-UHT-TM-500',product:'AP Special UHT Toned Milk',packType:'Special TM',packSize:'500 ml',oldMrp:30,mrp:29,grammage:'500 ml',category:'Milk',image:milkImage},
 ];
 
 function Placeholder({row}:{row:MrpRow}) {
@@ -106,11 +109,11 @@ export default function HeritageMrpCatalog({onMessage}:{onMessage:(message:strin
     <div className="admin-section-heading"><div><h2>Heritage AP MRP reference</h2><p>SKU-wise reference from the official circular · 21 Sep 2025 · effective 22 Sep 2025</p></div><a className="admin-refresh-button" href="https://www.heritagefoods.in/static/images/pdf/gst-pdfs/AP-2_merged.pdf" target="_blank" rel="noreferrer">Open official PDF <ExternalLink size={14}/></a></div>
     <div className="heritage-mrp-warning">Historical reference only. The circular is not a live price feed. Check the printed MRP on the stock you receive before publishing any product.</div>
     <div className="heritage-mrp-tools"><label className="heritage-mrp-search"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search product, pack size or code…"/></label><div className="heritage-mrp-filters">{['All','Ghee','Butter','Beverages','Cheese','Milk'].map(item=><button type="button" key={item} className={filter===item?'active':''} onClick={()=>setFilter(item)}>{item}</button>)}</div></div>
-    <p className="admin-hint">Showing {visible.length} of {rows.length} named / identifiable SKU rows. Ice-cream entries are excluded from draft import because the circular does not name their flavours; they remain in the source PDF.</p>
+    <p className="admin-hint">Showing {visible.length} of {rows.length} named / identifiable SKU rows. Ice-cream entries are excluded from draft import because the circular does not name their flavours. Product photos are representative pack references from Heritage / retail listings; check the exact pack and replace the image before publishing.</p>
     <div className="heritage-mrp-grid">{visible.map(row=><article className="heritage-mrp-card" key={row.code}>
       <div className="heritage-mrp-image">{row.image?<img src={row.image} alt="Heritage Cow Ghee official product pack range" loading="lazy"/>:<Placeholder row={row}/>}</div>
       <div className="heritage-mrp-card-body"><div className="heritage-mrp-card-title"><strong>{row.product}</strong><span>{row.code}</span></div><p>{row.packType} · {row.packSize}{row.grammage?' · New grammage '+row.grammage:''}</p><div className="heritage-mrp-prices"><span>Old ₹{row.oldMrp.toFixed(2)}</span><strong>Reference MRP ₹{row.mrp.toFixed(2)}</strong></div><button type="button" className="heritage-mrp-add" disabled={busy===row.code||added.includes(row.code)} onClick={()=>void addDraft(row)}>{added.includes(row.code)?<><CheckCircle2 size={15}/> In inventory</>:<><Plus size={15}/>{busy===row.code?'Adding…':'Add as hidden draft'}</>}</button></div>
     </article>)}</div>
-    <p className="heritage-mrp-footnote"><ImageIcon size={14}/> Only the Cow Ghee pack-range photo is an official Heritage product image. Other cards use clearly labelled replaceable placeholders, not invented packaging. Upload actual packet photos from Admin → Products → Edit before making them visible.</p>
+    <p className="heritage-mrp-footnote"><ImageIcon size={14}/> Photos are genuine reference pack images for selected product families, not a guarantee of the exact pack size or packaging currently supplied. Draft products stay hidden with zero stock. Replace each image with your own pack photo from Admin → Products → Edit before publishing.</p>
   </section>;
 }

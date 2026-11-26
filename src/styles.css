@@ -416,3 +416,36 @@ footer{background:linear-gradient(110deg,#edf5e7,#f8f7ed)!important;border-top:1
 .app-update-check-card>small{display:block;margin-top:12px;color:#879286;font-size:11px}
 .footer-update-link{border:0;background:transparent;color:#287541;text-decoration:underline;text-underline-offset:3px;font:700 11px 'DM Sans';cursor:pointer}
 @media(max-width:600px){.dedicated-login-page{min-height:calc(100vh - 110px);padding:18px 14px 40px}.dedicated-login-card{padding:32px 20px;border-radius:22px}.login-benefits{gap:10px}.app-version-card{padding:18px}.app-update-check-card{padding:18px}.app-update-action{width:100%}}
+
+
+/* Heritage MRP reference catalogue */
+.heritage-mrp-page{padding:22px}
+.heritage-mrp-warning{margin:14px 0;padding:13px 15px;border:1px solid #ead9a9;border-radius:12px;background:#fff9e8;color:#80621f;font-size:12px;line-height:1.55}
+.heritage-mrp-tools{display:grid;gap:12px;margin:16px 0}
+.heritage-mrp-search{display:flex;align-items:center;gap:9px;padding:11px 13px;border:1px solid #e0e9dc;border-radius:12px;background:#fff}
+.heritage-mrp-search input{width:100%;border:0;outline:0;background:transparent;color:#294d31;font:inherit}
+.heritage-mrp-filters{display:flex;gap:8px;flex-wrap:wrap}
+.heritage-mrp-filters button{border:1px solid #dfe8dc;border-radius:22px;padding:8px 13px;background:#fff;color:#57725a;font:700 11px 'DM Sans';cursor:pointer}
+.heritage-mrp-filters button.active{background:#e9f4e5;border-color:#9fc69b;color:#216b39}
+.heritage-mrp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-top:16px}
+.heritage-mrp-card{overflow:hidden;border:1px solid #e5ebdf;border-radius:15px;background:#fff}
+.heritage-mrp-image{height:158px;display:grid;place-items:center;background:#fbfcf8;padding:10px}
+.heritage-mrp-image img{width:100%;height:100%;object-fit:contain}
+.heritage-mrp-placeholder{display:grid;gap:6px;text-align:center;color:#69806a}
+.heritage-mrp-placeholder span{font-size:9px;letter-spacing:2px;font-weight:900}
+.heritage-mrp-placeholder strong{font:700 17px 'Playfair Display';color:#315b39}
+.heritage-mrp-placeholder small,.heritage-mrp-placeholder em{font-size:10px;color:#849184}
+.heritage-mrp-card-body{padding:13px;display:grid;gap:8px}
+.heritage-mrp-card-title{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.heritage-mrp-card-title strong{font-size:13px;color:#294c32}
+.heritage-mrp-card-title span{font-size:9px;color:#8b9688}
+.heritage-mrp-card-body p{margin:0;color:#7d897c;font-size:10px}
+.heritage-mrp-prices{display:grid;gap:4px;font-size:11px}
+.heritage-mrp-prices span{color:#929b90;text-decoration:line-through}
+.heritage-mrp-prices strong{color:#236b3c}
+.heritage-mrp-add{display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:10px;background:#eaf4e5;color:#246b3b;font:800 11px 'DM Sans';cursor:pointer}
+.heritage-mrp-add:disabled{opacity:.65;cursor:default}
+.heritage-mrp-footnote{display:flex;align-items:flex-start;gap:8px;margin-top:18px;color:#849184;font-size:10px;line-height:1.6}
+.admin-edit-product{display:grid;gap:12px}
+@media(max-width:850px){.heritage-mrp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.heritage-mrp-page{padding:14px}.heritage-mrp-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.heritage-mrp-image{height:125px}.heritage-mrp-card-body{padding:10px}}

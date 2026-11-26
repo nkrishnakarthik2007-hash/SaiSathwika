@@ -682,6 +682,7 @@ export default function App() {
           <button onClick={() => navigateCustomerPage('orders')}><PackageCheck size={17}/> View my orders <ChevronRight size={16}/></button>
           <button onClick={() => navigateCustomerPage('shop')}><Store size={17}/> Browse products <ChevronRight size={16}/></button>
           <button onClick={() => setCartOpen(true)}><ShoppingBag size={17}/> Open my cart <ChevronRight size={16}/></button>
+          {['admin','owner','super_admin'].includes(adminRole) && <button onClick={() => setAdminView(true)}><ShieldCheck size={17}/> Open admin panel <ChevronRight size={16}/></button>
           <button onClick={() => navigateCustomerPage('updates')}><RefreshCw size={17}/> App updates & version <ChevronRight size={16}/></button>
         </section>
       </div>
