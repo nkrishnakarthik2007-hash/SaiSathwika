@@ -634,7 +634,7 @@ export default function App() {
         <button className={customerPage === 'orders' ? 'active' : ''} onClick={() => navigateCustomerPage('orders')}>My orders</button>
       </nav>
       <div className="header-actions">
-        {['admin','owner','super_admin'].includes(adminRole) && <button className="account admin-shortcut" onClick={()=>setAdminView(true)}><ShieldCheck size={17}/> Admin</button>}
+        {['admin','owner','super_admin'].includes(adminRole) && <button className="account admin-shortcut" onClick={()=>setAdminView(true)} aria-label="Open admin panel"><ShieldCheck size={17}/> Admin Panel</button>}
         <button className="profile-trigger" aria-label={session ? 'Open my profile' : 'Sign in'} onClick={() => session ? navigateCustomerPage('profile') : setCustomerPage('login')}>
           {session?.user.user_metadata?.avatar_url || session?.user.user_metadata?.picture
             ? <img src={session.user.user_metadata.avatar_url || session.user.user_metadata.picture} alt="" referrerPolicy="no-referrer"/>
@@ -734,6 +734,7 @@ export default function App() {
       <button className={customerPage === 'shop' ? 'active' : ''} onClick={() => navigateCustomerPage('shop')}><Store size={19}/><span>Shop</span></button>
       <button className={customerPage === 'orders' ? 'active' : ''} onClick={() => navigateCustomerPage('orders')}><ClipboardList size={19}/><span>Orders</span></button>
       <button className={customerPage === 'profile' ? 'active' : ''} onClick={() => navigateCustomerPage('profile')}><UserRound size={19}/><span>Profile</span></button>
+      {['admin','owner','super_admin'].includes(adminRole) && <button className="mobile-admin-nav" onClick={() => setAdminView(true)} aria-label="Open admin panel"><ShieldCheck size={19}/><span>Admin</span></button>}
       <button onClick={() => setCartOpen(true)}><ShoppingBag size={19}/><span>Cart{cartCount ? ' · ' + cartCount : ''}</span></button>
     </nav>}
 
