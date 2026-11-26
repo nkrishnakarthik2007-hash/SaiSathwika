@@ -59,7 +59,7 @@ export default function App() {
       const latest = releases[0];
       const apk = latest?.assets?.find(asset => asset.name.toLowerCase() === 'saisathwika.apk');
       const latestVersionCode = Number(latest?.tag_name?.split('.').at(-1));
-      const installedVersionCode = Number(installed.versionCode ?? 0);
+      const installedVersionCode = Number(installed.build ?? 0);
       if (!latest || !apk || !Number.isFinite(latestVersionCode)) throw new Error('The latest release does not contain a valid Android APK.');
       if (latestVersionCode > installedVersionCode) {
         setAppUpdate({ tagName: latest.tag_name, apkUrl: apk.browser_download_url, releaseNotes: latest.body ?? '', versionCode: latestVersionCode });
