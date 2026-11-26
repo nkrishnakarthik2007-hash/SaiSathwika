@@ -312,3 +312,20 @@ footer{background:linear-gradient(110deg,#edf5e7,#f8f7ed)!important;border-top:1
 .payment-method-card strong{font-size:12px;color:#245b36}
 .payment-method-card small{font-size:10px;line-height:1.45;color:#788a79}
 .payment-selected{padding:5px 8px;border-radius:20px;background:#e2f2df;color:#287541;font-size:9px;font-weight:800}
+
+
+/* Final branded splash palette: match the cream, green and gold storefront */
+.brand-splash{background:radial-gradient(circle at 50% 42%,#fffdf4 0%,#f3f7e9 48%,#e5efdc 100%)!important;color:#244b30!important}
+.splash-glow{border-color:#2e77451a!important}
+.splash-glow-one{box-shadow:0 0 90px #9bcf9140,inset 0 0 75px #d5b65a20!important}
+.splash-glow-two{border-color:#6f9a6a38!important}
+.splash-brand-mark{border:1px solid #c6dcb8!important;background:linear-gradient(145deg,#a8d39b,#23864a 62%,#d4b65d)!important;box-shadow:0 22px 65px #245b3630,0 0 42px #7daf6b45!important}
+.splash-brand-mark span{color:#fffdf4!important;text-shadow:0 4px 16px #174b2b40!important}
+.splash-brand-mark i{background:#fffdf4!important;box-shadow:0 0 15px #ffffffaa!important}
+.splash-brand-mark:after{border-bottom-color:#fffdf4!important}
+.splash-tagline{color:#66836a!important}
+.splash-loader{background:#dce8d5!important}
+.splash-loader span{background:linear-gradient(90deg,#278449,#d1ad4e)!important}
+.splash-credit{color:#718671!important}
+.splash-credit b{color:#b58c36!important}
+.splash-credit strong{color:#285c38!important}
