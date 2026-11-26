@@ -280,8 +280,10 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     if(!supabase)return;
     if(!orderStatusTransitions[currentStatus]?.includes(status)){setMessage('This order status change is not allowed.');return;}
     if(status==='out_for_delivery'&&!orderAssignments[id]){setMessage('Assign a delivery partner before starting delivery.');return;}
-    const {error}=await supabase.from('orders').update({status}).eq('id',id).eq('status',currentStatus);
-    if(error)setMessage(error.message);else{setMessage('Order status updated.');void refreshOrders();}
+    const {data,error}=await supabase.from('orders').update({status}).eq('id',id).eq('status',currentStatus).select('id').maybeSingle();
+    if(error){setMessage('Could not update order status: '+error.message);return;}
+    if(!data){setMessage('This order was updated elsewhere. Refreshing the latest status…');void refreshOrders();return;}
+    setMessage('Order status updated.');void refreshOrders();
   }
   async function assignDeliveryPartner(orderId:string,partnerId:string){
     if(!supabase)return;
