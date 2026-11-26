@@ -39,6 +39,13 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [adminRole, setAdminRole] = useState('customer');
   const [adminView, setAdminView] = useState(false);
+  const [roleResolved, setRoleResolved] = useState(false);
+  const [sessionResolved, setSessionResolved] = useState(false);
+  const [adminPortalRequested, setAdminPortalRequested] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get('admin') === '1';
+    if (requested) localStorage.setItem('sai-sathwika-admin-portal', '1');
+    return requested || localStorage.getItem('sai-sathwika-admin-portal') === '1';
+  });
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [address, setAddress] = useState({recipient_name:'',phone:'',address_line:'',landmark:''});
@@ -169,20 +176,26 @@ export default function App() {
     const client = supabase;
     if (!client) { setLoading(false); return; }
     client.auth.getSession().then(({ data }) => {
+      setSessionResolved(true);
       setSession(data.session);
       if (data.session) {
+        setRoleResolved(false);
         void loadRole(data.session.user.id);
         void flushAppDiagnostics(client, data.session.user.id);
+      } else {
+        setRoleResolved(true);
       }
     });
     const { data: listener } = client.auth.onAuthStateChange((_event, next) => {
       setSession(next);
       if (next) {
+        setRoleResolved(false);
         Promise.resolve().then(() => {
           void loadRole(next.user.id);
           void flushAppDiagnostics(client, next.user.id);
         });
       } else {
+        setRoleResolved(true);
         setAdminRole('customer');
         setAdminView(false);
         setCartCloudUserId(null);
@@ -190,6 +203,24 @@ export default function App() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!adminPortalRequested || !sessionResolved) return;
+    if (!session) {
+      setLoginOpen(true);
+      return;
+    }
+    if (!roleResolved) return;
+    if (['admin','super_admin'].includes(adminRole)) {
+      setLoginOpen(false);
+      setAdminView(true);
+    } else {
+      setAdminView(false);
+      setAdminPortalRequested(false);
+      localStorage.removeItem('sai-sathwika-admin-portal');
+      setNotice('This Google account does not have permission to manage the store. Please use the store admin account.');
+    }
+  }, [adminPortalRequested, sessionResolved, session?.user.id, roleResolved, adminRole]);
 
   useEffect(() => {
     const supabaseClient = supabase;
@@ -246,8 +277,10 @@ export default function App() {
 
   async function loadRole(userId: string) {
     if(!supabase)return;
-    const {data}=await supabase.from('profiles').select('role').eq('id',userId).maybeSingle();
+    const {data,error}=await supabase.from('profiles').select('role').eq('id',userId).maybeSingle();
+    if(error)recordAppDiagnostic('Could not load account role: '+error.message);
     setAdminRole(data?.role ?? 'customer');
+    setRoleResolved(true);
   }
 
   useEffect(() => {
@@ -514,7 +547,10 @@ export default function App() {
     }
   }
 
-  if(adminView && ['admin','super_admin'].includes(adminRole)) return <AdminDashboard onBack={()=>setAdminView(false)}/>;
+  if(adminView && ['admin','super_admin'].includes(adminRole)) return <AdminDashboard
+    onBack={()=>{setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
+    onSignOut={async()=>{await supabase?.auth.signOut();setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
+  />;
 
   return <main>
     <div className="announcement"><span>{storeAccepting===true?'We are accepting orders · Fresh dairy from your neighbourhood':storeAccepting===false?'Online ordering is not open yet · Browse our products':'Fresh dairy from your neighbourhood · Free delivery at launch'}</span><button className="update-check" onClick={appUpdate ? startAppUpdate : checkForUpdates} disabled={checkingUpdate || installingUpdate}>{checkingUpdate ? 'Checking…' : installingUpdate ? 'Downloading ' + updateProgress + '%' : appUpdate ? 'Download update · ' + appUpdate.tagName : 'Check for updates'}</button>{installingUpdate && <span className="update-progress-label" role="status">{updateProgress}% downloaded</span>}</div>
