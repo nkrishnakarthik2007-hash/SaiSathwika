@@ -18,7 +18,7 @@ const iconSvg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1024
 </svg>`);
 const splashSvg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732" viewBox="0 0 2732 2732">
 <defs>
-  <radialGradient id="bg" cx=".5" cy=".42" r=".72"><stop stop-color="#17235c"/><stop offset=".62" stop-color="#0b1238"/><stop offset="1" stop-color="#e7f0df"/></radialGradient>
+  <radialGradient id="bg" cx=".5" cy=".42" r=".78"><stop stop-color="#fffdf4"/><stop offset=".68" stop-color="#f3f7e9"/><stop offset="1" stop-color="#e5efdc"/></radialGradient>
   <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9bcf91"/><stop offset=".52" stop-color="#23864a"/><stop offset="1" stop-color="#d3b45c"/></linearGradient>
   <linearGradient id="arc" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#9bcf91"/><stop offset="1" stop-color="#d3b45c"/></linearGradient>
 </defs>
@@ -34,9 +34,9 @@ const splashSvg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="27
 </g>
 <text x="1366" y="2070" text-anchor="middle" font-family="Arial,sans-serif" font-size="150" font-weight="700" letter-spacing="8" fill="#19472d">SAI SATHWIKA</text>
 <path d="M825 2155 Q1366 2040 1907 2155" fill="none" stroke="url(#ribbon)" stroke-width="22" stroke-linecap="round"/>
-<text x="1366" y="2265" text-anchor="middle" font-family="Arial,sans-serif" font-size="54" font-weight="600" letter-spacing="12" fill="#6d876d">FRESHNESS AT YOUR DOORSTEP</text>
+<text x="1366" y="2265" text-anchor="middle" font-family="Arial,sans-serif" font-size="54" font-weight="600" letter-spacing="12" fill="#55745a">FRESHNESS AT YOUR DOORSTEP</text>
 </svg>`);
 
 await sharp(iconSvg).png().toFile('assets/icon-only.png');
 await sharp(splashSvg).png().toFile('assets/splash.png');
-console.log('Generated the Sai Sathwika blue-purple Android icon and matching launch splash assets.');
+console.log('Generated the Sai Sathwika cream-and-green Android icon and matching launch splash assets.');
