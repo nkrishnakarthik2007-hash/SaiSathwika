@@ -133,7 +133,6 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     const channel=supabase?.channel('sai-sathwika-admin-live')
       .on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>void refreshOrders())
       .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>void refresh())
-      .on('postgres_changes',{event:'*',schema:'public',table:'app_diagnostics'},()=>{if(activeTab==='diagnostics')void refreshDiagnostics();})
       .subscribe();
     return ()=>{if(channel)void supabase?.removeChannel(channel);};
   },[]);
@@ -142,6 +141,13 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
     if(activeTab==='promotions')void refreshPromotions();
     if(activeTab==='diagnostics')void refreshDiagnostics();
     if(activeTab==='orders')void refreshOrders();
+  },[activeTab]);
+  useEffect(()=>{
+    if(activeTab!=='diagnostics'||!supabase)return;
+    const channel=supabase.channel('sai-sathwika-diagnostics-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'app_diagnostics'},()=>void refreshDiagnostics())
+      .subscribe();
+    return ()=>{void supabase?.removeChannel(channel);};
   },[activeTab]);
   function captureStoreLocation(){
     if(!navigator.geolocation){setMessage('Location is not supported on this device.');return;}
