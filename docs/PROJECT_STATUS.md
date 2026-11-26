@@ -29,7 +29,7 @@ Last reviewed: 2026-11-27
 - Supabase reports no health lints, but flags leaked-password protection as disabled.
 - Five SECURITY DEFINER RPCs are flagged as executable by authenticated users. Source review found internal role/assignment checks in the inspected functions; do not revoke these grants blindly because the app calls the RPCs.
 - Performance advisor reports 7 unindexed foreign keys, 14 RLS auth-initplan warnings, 9 unused indexes and 10 multiple-permissive-policy warnings. Review query plans and policy intent before changing them.
-- Existing diagnostics were automatically uploaded after sign-in without explicit consent. Draft PR #1 adds a customer opt-in control and a consent guard; its first CI attempt exposed a missing npm lockfile/cache assumption, which was removed from the workflow. Await the rerun.
+- Existing diagnostics were automatically uploaded after sign-in without explicit consent. Draft PR #1 adds a customer opt-in control and a consent guard. The initial PR CI run exposed an npm-cache setting that required a lockfile; that setting was removed. The latest PR-only validation then passed: dependency installation and the TypeScript/Vite build both succeeded. No production deployment occurred.
 
 ## Feedback, growth and monetisation
 - The admin has a Live Health diagnostics view, but there is no customer-facing feedback form yet.
