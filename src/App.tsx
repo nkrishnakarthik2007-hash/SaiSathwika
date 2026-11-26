@@ -623,7 +623,7 @@ export default function App() {
         <button className={customerPage === 'orders' ? 'active' : ''} onClick={() => navigateCustomerPage('orders')}>My orders</button>
       </nav>
       <div className="header-actions">
-        {['admin','super_admin'].includes(adminRole) && <button className="account admin-shortcut" onClick={()=>setAdminView(true)}><ShieldCheck size={17}/> Admin</button>}
+        {['admin','owner','super_admin'].includes(adminRole) && <button className="account admin-shortcut" onClick={()=>setAdminView(true)}><ShieldCheck size={17}/> Admin</button>}
         <button className="profile-trigger" aria-label={session ? 'Open my profile' : 'Sign in'} onClick={() => session ? navigateCustomerPage('profile') : setCustomerPage('login')}>
           {session?.user.user_metadata?.avatar_url || session?.user.user_metadata?.picture
             ? <img src={session.user.user_metadata.avatar_url || session.user.user_metadata.picture} alt="" referrerPolicy="no-referrer"/>
