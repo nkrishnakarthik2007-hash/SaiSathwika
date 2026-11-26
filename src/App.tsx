@@ -4,7 +4,7 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { App as NativeApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import type { Session } from '@supabase/supabase-js';
-import { ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search, ShieldCheck, ShoppingBag, UserRound, X, Minus, Plus, PackageCheck, LocateFixed, Home, Store, ClipboardList, LogOut, UserCircle2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search, ShieldCheck, ShoppingBag, UserRound, X, Minus, Plus, PackageCheck, LocateFixed, Home, Store, ClipboardList, LogOut, UserCircle2, ChevronRight } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { AppUpdater } from './lib/app-updater';
 import { flushAppDiagnostics, installAppDiagnostics, recordAppDiagnostic } from './lib/diagnostics';
