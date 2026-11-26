@@ -23,7 +23,10 @@ const categoryIcons = [Milk, Leaf, IceCream, Milk];
 const fallbackCategories = ['Milk & Varieties', 'Curd & Buttermilk', 'Ice Creams', 'Butter, Ghee & Paneer'];
 
 export default function App() {
-  const [customerPage, setCustomerPage] = useState<CustomerPage>('home');
+  const [customerPage, setCustomerPage] = useState<CustomerPage>(() => {
+    const saved = localStorage.getItem('sai-sathwika-last-page');
+    return saved && ['home','shop','orders','profile','login','updates'].includes(saved) ? saved as CustomerPage : 'home';
+  });
   const [query, setQuery] = useState('');
   const [activeCategory,setActiveCategory]=useState<string|null>(null);
   const [cart, setCart] = useState<Record<string, number>>(() => {
@@ -41,7 +44,7 @@ export default function App() {
   const [deliveryRadius,setDeliveryRadius]=useState(2);
   const [notice, setNotice] = useState('');
   const [adminRole, setAdminRole] = useState('customer');
-  const [adminView, setAdminView] = useState(false);
+  const [adminView, setAdminView] = useState(() => localStorage.getItem('sai-sathwika-admin-view') === '1');
   const [roleResolved, setRoleResolved] = useState(false);
   const [sessionResolved, setSessionResolved] = useState(false);
   const [adminPortalRequested, setAdminPortalRequested] = useState(() => {
@@ -125,6 +128,15 @@ export default function App() {
       setInstallingUpdate(false);
     }
   }
+
+  useEffect(() => { localStorage.setItem('sai-sathwika-last-page', customerPage); }, [customerPage]);
+  useEffect(() => {
+    if (adminView && roleResolved && !['admin','owner','super_admin','delivery_staff'].includes(adminRole)) {
+      setAdminView(false); localStorage.removeItem('sai-sathwika-admin-view');
+    } else if (adminView && ['admin','owner','super_admin','delivery_staff'].includes(adminRole)) {
+      localStorage.setItem('sai-sathwika-admin-view', '1');
+    } else if (!adminView) localStorage.removeItem('sai-sathwika-admin-view');
+  }, [adminView, roleResolved, adminRole]);
 
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'android') { setInstalledAppVersion('Web version'); return; }
@@ -213,6 +225,7 @@ export default function App() {
         setRoleResolved(true);
         setAdminRole('customer');
         setAdminView(false);
+        localStorage.removeItem('sai-sathwika-admin-view');
         setCartCloudUserId(null);
         setCart({});
       }
@@ -528,6 +541,7 @@ export default function App() {
       return;
     }
     setCustomerPage('home');
+    localStorage.removeItem('sai-sathwika-admin-view');
     setCustomerAddresses([]);
     setCustomerOrders([]);
     setCartCloudUserId(null);

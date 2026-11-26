@@ -89,7 +89,12 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   const [editImage,setEditImage]=useState<File|null>(null);
   const [inventorySearch,setInventorySearch]=useState('');
   const [lowStockOnly,setLowStockOnly]=useState(false);
-  const [activeTab,setActiveTab]=useState<AdminTab>('overview');
+  const [activeTab,setActiveTab]=useState<AdminTab>(() => {
+    const saved = localStorage.getItem('sai-sathwika-admin-tab');
+    return saved && adminTabs.some(tab => tab.id === saved) ? saved as AdminTab : 'overview';
+  });
+  const [menuOpen,setMenuOpen]=useState(false);
+  useEffect(() => { localStorage.setItem('sai-sathwika-admin-tab', activeTab); }, [activeTab]);
   const [customers,setCustomers]=useState<any[]>([]);
   const [customerSearch,setCustomerSearch]=useState('');
   const [promotions,setPromotions]=useState<any[]>([]);
@@ -395,6 +400,13 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     <header className="admin-top"><button onClick={onBack}><ArrowLeft size={17}/> Storefront</button><div><ShieldCheck size={19}/> Sai Sathwika · Admin</div><div className="admin-top-actions"><button className="admin-refresh-button" type="button" onClick={()=>{void refresh();void refreshOrders();}}><RefreshCw size={15}/> Refresh</button><button className="admin-signout" type="button" onClick={onSignOut}><LogOut size={15}/> Sign out</button></div></header>
     <section className="admin-shell">
       <div className="admin-heading"><span className="eyebrow">STORE CONTROL CENTRE</span><h1>{activeTab==='overview'?'Good morning, Admin.':adminTabs.find(tab=>tab.id===activeTab)?.label}</h1><p>{activeTab==='overview'?'Your ecommerce operations, in one place.':'Manage '+(adminTabs.find(tab=>tab.id===activeTab)?.label.toLowerCase()??'store operations')+' for Sai Sathwika.'}</p></div>
+      <div className="admin-nav-wrap">
+        <button type="button" className="admin-menu-trigger" aria-expanded={menuOpen} onClick={()=>setMenuOpen(open=>!open)}>
+          <span><LayoutDashboard size={18}/><strong>{adminTabs.find(tab=>tab.id===activeTab)?.label ?? 'Admin menu'}</strong></span>
+          <span className="admin-menu-trigger-right">{menuOpen?'Close':'All sections'} <ChevronRight size={17}/></span>
+        </button>
+        {menuOpen && <div className="admin-menu-dropdown">{adminTabs.filter(tab=>tab.id!=='team'||['super_admin','owner'].includes(role)).map(tab=>{const Icon=tab.icon;return <button type="button" key={tab.id} className={activeTab===tab.id?'active':''} onClick={()=>{setActiveTab(tab.id);setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'});}}><Icon size={18}/><span>{tab.label}</span>{activeTab===tab.id&&<span className="admin-menu-current">Current</span>}</button>;})}</div>}
+      </div>
       <nav className="admin-navigation" aria-label="Admin sections">{adminTabs.filter(tab=>tab.id!=='team'||['super_admin','owner'].includes(role)).map(tab=>{const Icon=tab.icon;return <button key={tab.id} className={activeTab===tab.id?'active':''} onClick={()=>setActiveTab(tab.id)}><Icon size={16}/><span>{tab.label}</span></button>;})}</nav>
       <div className="admin-stats"><article><PackagePlus/><strong>{products.length}</strong><span>Products</span></article><article><ShoppingBag/><strong>{pendingOrders}</strong><span>Open orders</span></article><article><Users/><strong>{customers.length||'—'}</strong><span>Customers</span></article><article><TrendingUp/><strong>₹{recentValue.toFixed(0)}</strong><span>Recent order value</span></article></div>
       {message&&<div className="admin-message">{message}</div>}

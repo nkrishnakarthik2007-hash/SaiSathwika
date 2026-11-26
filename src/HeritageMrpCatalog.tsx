@@ -9,10 +9,10 @@ type MrpRow = {
 
 // Transcribed from Heritage Foods' official Andhra Pradesh circular dated 21-Sep-2025.
 // These are historical reference MRPs effective 22-Sep-2025, not a live/current price feed.
-const cowGheeImage = 'https://cdn.dmart.in/images/products/DEC110003150xx26DEC22_5_B.jpg';
-const cookingButterImage = 'https://www.jiomart.com/images/product/original/490440260/heritage-white-butter-200-g-carton-product-images-o490440260-p591013535-4-202203151053.jpg?im=Resize%3D%28420%2C420%29';
-const cheeseSlicesImage = 'https://www.bbassets.com/media/uploads/p/xl/40209533_3-heritage-cheese-slices.jpg';
-const milkImage = 'https://www.heritagefoods.in/static/images/detailslider/milk/farm-fresh-milk-big.png';
+const cowGheeImage = 'https://www.heritagefoods.in/static/images/detailslider/ghee/cow-ghee1.png';
+const cookingButterImage = 'https://www.heritagefoods.in/static/images/detailslider/butter/cooking-butter-1.png';
+const cheeseSlicesImage = '';
+const milkImage = '';
 const rows: MrpRow[] = [
   {code:'CB-200',product:'Cooking Butter',packType:'Carton',packSize:'200 g',oldMrp:130,mrp:120,category:'Butter',image:cookingButterImage},
   {code:'CB-500',product:'Cooking Butter',packType:'Carton',packSize:'500 g',oldMrp:320,mrp:300,category:'Butter',image:cookingButterImage},
@@ -71,6 +71,7 @@ function Placeholder({row}:{row:MrpRow}) {
 }
 
 export default function HeritageMrpCatalog({onMessage}:{onMessage:(message:string)=>void}) {
+  const [failedImages,setFailedImages]=useState<string[]>([]);
   const [search,setSearch]=useState('');
   const [filter,setFilter]=useState('All');
   const [busy,setBusy]=useState<string|null>(null);
@@ -111,7 +112,7 @@ export default function HeritageMrpCatalog({onMessage}:{onMessage:(message:strin
     <div className="heritage-mrp-tools"><label className="heritage-mrp-search"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search product, pack size or code…"/></label><div className="heritage-mrp-filters">{['All','Ghee','Butter','Beverages','Cheese','Milk'].map(item=><button type="button" key={item} className={filter===item?'active':''} onClick={()=>setFilter(item)}>{item}</button>)}</div></div>
     <p className="admin-hint">Showing {visible.length} of {rows.length} named / identifiable SKU rows. Ice-cream entries are excluded from draft import because the circular does not name their flavours. Product photos are representative pack references from Heritage / retail listings; check the exact pack and replace the image before publishing.</p>
     <div className="heritage-mrp-grid">{visible.map(row=><article className="heritage-mrp-card" key={row.code}>
-      <div className="heritage-mrp-image">{row.image?<img src={row.image} alt="Heritage Cow Ghee official product pack range" loading="lazy"/>:<Placeholder row={row}/>}</div>
+      <div className="heritage-mrp-image">{row.image&&!failedImages.includes(row.code)?<img src={row.image} alt={"Heritage "+row.product+" product reference"} loading="lazy" onError={()=>setFailedImages(current=>current.includes(row.code)?current:[...current,row.code])}/>:<Placeholder row={row}/>}</div>
       <div className="heritage-mrp-card-body"><div className="heritage-mrp-card-title"><strong>{row.product}</strong><span>{row.code}</span></div><p>{row.packType} · {row.packSize}{row.grammage?' · New grammage '+row.grammage:''}</p><div className="heritage-mrp-prices"><span>Old ₹{row.oldMrp.toFixed(2)}</span><strong>Reference MRP ₹{row.mrp.toFixed(2)}</strong></div><button type="button" className="heritage-mrp-add" disabled={busy===row.code||added.includes(row.code)} onClick={()=>void addDraft(row)}>{added.includes(row.code)?<><CheckCircle2 size={15}/> In inventory</>:<><Plus size={15}/>{busy===row.code?'Adding…':'Add as hidden draft'}</>}</button></div>
     </article>)}</div>
     <p className="heritage-mrp-footnote"><ImageIcon size={14}/> Photos are genuine reference pack images for selected product families, not a guarantee of the exact pack size or packaging currently supplied. Draft products stay hidden with zero stock. Replace each image with your own pack photo from Admin → Products → Edit before publishing.</p>
