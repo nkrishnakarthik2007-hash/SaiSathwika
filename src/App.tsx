@@ -444,7 +444,7 @@ export default function App() {
         <span className="eyebrow"><span className="dot"/> YOUR NEIGHBOURHOOD DAIRY STORE</span>
         <h1>Goodness that<br/><em>comes to you.</em></h1>
         <p>Your daily dairy favourites, ice creams and more — fresh from Sai Sathwika to your doorstep.</p>
-        <div className="hero-actions"><a className="primary" href="#shop">Explore products <ArrowRight size={17}/></a><span><ShieldCheck size={17}/> Local. Fresh. Convenient.</span></div>
+        <div className="hero-actions"><button className="primary" onClick={() => navigateCustomerPage('shop')}>Explore products <ArrowRight size={17}/></button><span><ShieldCheck size={17}/> Local. Fresh. Convenient.</span></div>
       </div>
       <div className="hero-art"><div className="sun"></div><div className="leaf leaf-one"></div><div className="leaf leaf-two"></div><div className="milk-pack"><span>Heritage</span><strong>Fresh<br/>Milk</strong><small>PURE DAIRY GOODNESS</small></div><div className="curd-pot"><span>✳</span><strong>Curd</strong></div><div className="ice-cream">🍦</div><div className="art-caption">A little freshness, every day.</div></div>
     </section>
