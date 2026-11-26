@@ -222,7 +222,7 @@ export default function App() {
       return;
     }
     if (!roleResolved) return;
-    if (['admin','super_admin'].includes(adminRole)) {
+    if (['admin','owner','super_admin'].includes(adminRole)) {
       setLoginOpen(false);
       setAdminView(true);
     } else {
