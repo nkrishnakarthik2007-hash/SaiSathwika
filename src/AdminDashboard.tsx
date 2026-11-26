@@ -141,8 +141,8 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     else{
       const inv=data.invitation;
       const inviteMessage='You are invited to join Sai Sathwika as '+inv.role.toUpperCase()+'. Sign in with Google using exactly this email: '+inv.email+'. Your access will activate automatically. Invitation expires: '+new Date(inv.expires_at).toLocaleString()+'.';
-      try{await navigator.clipboard.writeText(inviteMessage);setMessage('Invitation created and message copied. Send it to '+inv.email+'.');}
-      catch{setMessage('Invitation created for '+inv.email+'. Copy the email and send the sign-in instructions manually.');}
+      try{if(navigator.share)await navigator.share({title:'Sai Sathwika team invitation',text:inviteMessage});else await navigator.clipboard.writeText(inviteMessage);setMessage('Invitation created. Share the invitation message with '+inv.email+'.');}
+      catch{try{await navigator.clipboard.writeText(inviteMessage);setMessage('Invitation created and message copied. Send it to '+inv.email+'.');}catch{setMessage('Invitation created for '+inv.email+'. Share the sign-in instructions manually.');}}
       setInviteEmail('');
       await refreshInvitations();
     }
@@ -180,7 +180,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     if(activeTab==='customers')void refreshCustomers();
     if(activeTab==='promotions')void refreshPromotions();
     if(activeTab==='diagnostics')void refreshDiagnostics();
-    if(activeTab==='team')void refreshInvitations();
+    if(activeTab==='team'){void refreshInvitations();void refreshCustomers();}
     if(activeTab==='orders')void refreshOrders();
   },[activeTab]);
   useEffect(()=>{
