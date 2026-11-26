@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X, LayoutDashboard, Users, Percent, Activity, ShoppingBag, RefreshCw, TrendingUp, Truck } from 'lucide-react';
+import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X, LayoutDashboard, Users, Percent, Activity, ShoppingBag, RefreshCw, TrendingUp, Truck, LogOut, ChevronRight } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 type Option = { id: string; name: string };
