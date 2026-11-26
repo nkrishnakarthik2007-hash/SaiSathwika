@@ -7,7 +7,7 @@ if (!Number.isInteger(runNumber) || runNumber < 1) {
 }
 
 let gradle = await readFile(gradlePath, 'utf8');
-const versionCodePattern = /(versionCode\s+)\\d+/;
+const versionCodePattern = /(versionCode\s+)\d+/;
 const versionNamePattern = /(versionName\s+)[\"'][^\"']+[\"']/;
 if (!versionCodePattern.test(gradle)) {
   throw new Error('Could not find versionCode in generated android/app/build.gradle.');
