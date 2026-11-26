@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X, LayoutDashboard, Users, Percent, Activity, ShoppingBag, RefreshCw, TrendingUp, Truck, LogOut, ChevronRight } from 'lucide-react';
+import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X, LayoutDashboard, Users, Percent, Activity, ShoppingBag, RefreshCw, TrendingUp, Truck, LogOut, ChevronRight, UserPlus, Mail } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 type Option = { id: string; name: string };
-type AdminTab = 'overview' | 'products' | 'orders' | 'customers' | 'promotions' | 'store' | 'diagnostics';
+type AdminTab = 'overview' | 'products' | 'orders' | 'customers' | 'promotions' | 'store' | 'diagnostics' | 'team';
 const adminTabs: { id: AdminTab; label: string; icon: any }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'products', label: 'Products', icon: PackagePlus },
@@ -12,6 +12,7 @@ const adminTabs: { id: AdminTab; label: string; icon: any }[] = [
   { id: 'promotions', label: 'Promotions', icon: Percent },
   { id: 'store', label: 'Store settings', icon: Store },
   { id: 'diagnostics', label: 'Live health', icon: Activity },
+  { id: 'team', label: 'Team access', icon: UserPlus },
 ];
 
 const orderStatusTransitions: Record<string, string[]> = {
@@ -43,7 +44,7 @@ async function optimizeProductImage(file: File): Promise<File> {
     bitmap.close();
   }
 }
-export default function AdminDashboard({ onBack, onSignOut }: { onBack: () => void; onSignOut: () => void }) {
+export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: () => void; onSignOut: () => void; role: string }) {
   const [brands,setBrands]=useState<Option[]>([]);
   const [categories,setCategories]=useState<Option[]>([]);
   const [products,setProducts]=useState<any[]>([]);
@@ -90,6 +91,10 @@ export default function AdminDashboard({ onBack, onSignOut }: { onBack: () => vo
   const [diagnostics,setDiagnostics]=useState<any[]>([]);
   const [diagnosticsBusy,setDiagnosticsBusy]=useState(false);
   const [lastRefreshed,setLastRefreshed]=useState<Date|null>(null);
+  const [inviteEmail,setInviteEmail]=useState('');
+  const [inviteRole,setInviteRole]=useState<'admin'|'owner'>('admin');
+  const [teamInvitations,setTeamInvitations]=useState<any[]>([]);
+  const [teamBusy,setTeamBusy]=useState(false);
 
   async function refresh(){
     if(!supabase)return;
@@ -119,6 +124,38 @@ export default function AdminDashboard({ onBack, onSignOut }: { onBack: () => vo
     const {data,error}=await supabase.from('promotions').select('id,name,description,promotion_type,rules,is_active,starts_at,ends_at,created_at').order('created_at',{ascending:false});
     if(error)setMessage('Promotions: '+error.message);else setPromotions(data??[]);
   }
+  async function refreshInvitations(){
+    if(!supabase)return;
+    setTeamBusy(true);
+    const {data,error}=await supabase.functions.invoke('team-invitations',{body:{action:'list'}});
+    if(error)setMessage('Team invitations: '+error.message);
+    else setTeamInvitations(data?.invitations??[]);
+    setTeamBusy(false);
+  }
+  async function createInvitation(event:React.FormEvent){
+    event.preventDefault();
+    if(!supabase||!inviteEmail.trim())return;
+    setTeamBusy(true);
+    const {data,error}=await supabase.functions.invoke('team-invitations',{body:{action:'invite',email:inviteEmail.trim(),role:inviteRole}});
+    if(error||data?.error)setMessage(data?.error??error?.message??'Could not create invitation.');
+    else{
+      const inv=data.invitation;
+      const inviteMessage='You are invited to join Sai Sathwika as '+inv.role.toUpperCase()+'. Sign in with Google using exactly this email: '+inv.email+'. Your access will activate automatically. Invitation expires: '+new Date(inv.expires_at).toLocaleString()+'.';
+      try{await navigator.clipboard.writeText(inviteMessage);setMessage('Invitation created and message copied. Send it to '+inv.email+'.');}
+      catch{setMessage('Invitation created for '+inv.email+'. Copy the email and send the sign-in instructions manually.');}
+      setInviteEmail('');
+      await refreshInvitations();
+    }
+    setTeamBusy(false);
+  }
+  async function revokeInvitation(id:string){
+    if(!supabase)return;
+    setTeamBusy(true);
+    const {data,error}=await supabase.functions.invoke('team-invitations',{body:{action:'revoke',id}});
+    if(error||data?.error)setMessage(data?.error??error?.message??'Could not revoke invitation.');
+    else{setMessage('Invitation revoked.');await refreshInvitations();}
+    setTeamBusy(false);
+  }
   async function refreshDiagnostics(){
     if(!supabase)return;
     setDiagnosticsBusy(true);
@@ -143,6 +180,7 @@ export default function AdminDashboard({ onBack, onSignOut }: { onBack: () => vo
     if(activeTab==='customers')void refreshCustomers();
     if(activeTab==='promotions')void refreshPromotions();
     if(activeTab==='diagnostics')void refreshDiagnostics();
+    if(activeTab==='team')void refreshInvitations();
     if(activeTab==='orders')void refreshOrders();
   },[activeTab]);
   useEffect(()=>{
@@ -303,7 +341,7 @@ export default function AdminDashboard({ onBack, onSignOut }: { onBack: () => vo
     <header className="admin-top"><button onClick={onBack}><ArrowLeft size={17}/> Storefront</button><div><ShieldCheck size={19}/> Sai Sathwika · Admin</div><div className="admin-top-actions"><button className="admin-refresh-button" type="button" onClick={()=>{void refresh();void refreshOrders();}}><RefreshCw size={15}/> Refresh</button><button className="admin-signout" type="button" onClick={onSignOut}><LogOut size={15}/> Sign out</button></div></header>
     <section className="admin-shell">
       <div className="admin-heading"><span className="eyebrow">STORE CONTROL CENTRE</span><h1>{activeTab==='overview'?'Good morning, Admin.':adminTabs.find(tab=>tab.id===activeTab)?.label}</h1><p>{activeTab==='overview'?'Your ecommerce operations, in one place.':'Manage '+(adminTabs.find(tab=>tab.id===activeTab)?.label.toLowerCase()??'store operations')+' for Sai Sathwika.'}</p></div>
-      <nav className="admin-navigation" aria-label="Admin sections">{adminTabs.map(tab=>{const Icon=tab.icon;return <button key={tab.id} className={activeTab===tab.id?'active':''} onClick={()=>setActiveTab(tab.id)}><Icon size={16}/><span>{tab.label}</span></button>;})}</nav>
+      <nav className="admin-navigation" aria-label="Admin sections">{adminTabs.filter(tab=>tab.id!=='team'||['super_admin','owner'].includes(role)).map(tab=>{const Icon=tab.icon;return <button key={tab.id} className={activeTab===tab.id?'active':''} onClick={()=>setActiveTab(tab.id)}><Icon size={16}/><span>{tab.label}</span></button>;})}</nav>
       <div className="admin-stats"><article><PackagePlus/><strong>{products.length}</strong><span>Products</span></article><article><ShoppingBag/><strong>{pendingOrders}</strong><span>Open orders</span></article><article><Users/><strong>{customers.length||'—'}</strong><span>Customers</span></article><article><TrendingUp/><strong>₹{recentValue.toFixed(0)}</strong><span>Recent order value</span></article></div>
       {message&&<div className="admin-message">{message}</div>}
       {activeTab==='overview'&&<><section className="admin-overview-grid">
@@ -361,6 +399,23 @@ export default function AdminDashboard({ onBack, onSignOut }: { onBack: () => vo
   </article>)}</div>
 </section>}
       {activeTab==='store'&&<section className="admin-card"><h2><Store/> Delivery settings</h2><label className="admin-label">Delivery radius (km)<input type="number" min=".5" max="100" step=".5" value={radius} onChange={e=>setRadius(e.target.value)}/></label><label className="admin-label">Delivery fee (₹)<input type="number" min="0" value={deliveryFee} onChange={e=>setDeliveryFee(e.target.value)}/></label><div className="admin-two"><label>Store latitude<input type="number" step="any" value={storeLat} onChange={e=>setStoreLat(e.target.value)} placeholder="17.0000"/></label><label>Store longitude<input type="number" step="any" value={storeLng} onChange={e=>setStoreLng(e.target.value)} placeholder="78.0000"/></label></div><button type="button" className="admin-location-button" onClick={captureStoreLocation} disabled={storeLocationBusy}><LocateFixed size={16}/>{storeLocationBusy?"Getting location…":"Use this device to set store location"}</button><p className="admin-hint">Capture this while you are physically at the store. Required to verify customer delivery distance.</p><label className="admin-check"><input type="checkbox" checked={accepting} onChange={e=>setAccepting(e.target.checked)}/> Accepting orders</label><button className="admin-submit" onClick={saveStore}>Save store settings</button></section>}
+      {activeTab==='team'&&<section className="admin-card inventory">
+  <div className="admin-section-heading"><div><h2><UserPlus/> Team access</h2><p>Invite trusted people using their exact Google account email. Invitations expire after 7 days.</p></div><button type="button" className="admin-refresh-button" onClick={()=>void refreshInvitations()} disabled={teamBusy}><RefreshCw size={15}/> Refresh</button></div>
+  <form className="admin-form admin-team-invite" onSubmit={createInvitation}>
+    <label>Google account email<input required type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="person@gmail.com"/></label>
+    <label>Access level<select value={inviteRole} onChange={e=>setInviteRole(e.target.value as 'admin'|'owner')}><option value="admin">Admin — daily store operations</option>{role==='super_admin'&&<option value="owner">Owner — store operations + invite admins</option>}</select></label>
+    <button className="admin-submit" disabled={teamBusy||!inviteEmail.trim()}><Mail size={16}/>{teamBusy?'Working…':'Create invitation & copy message'}</button>
+  </form>
+  <p className="admin-hint">The invitation message is copied so you can send it through WhatsApp, email or SMS. The recipient must sign in with Google using the exact invited email. Owners can invite Admins; only the Super Admin can invite Owners.</p>
+  <h3 className="admin-team-subtitle">Invitations</h3>
+  {teamInvitations.length===0?<p className="admin-hint">No invitations yet.</p>:teamInvitations.map(inv=><article className="admin-team-row" key={inv.id}>
+    <div><strong>{inv.email}</strong><small>{inv.role.replaceAll('_',' ')} · Expires {new Date(inv.expires_at).toLocaleDateString()}</small></div>
+    <span className={inv.accepted_at?'admin-active-pill':inv.revoked_at?'admin-inactive-pill':'admin-warning-pill'}>{inv.accepted_at?'Accepted':inv.revoked_at?'Revoked':new Date(inv.expires_at)<new Date()?'Expired':'Pending'}</span>
+    {!inv.accepted_at&&!inv.revoked_at&&new Date(inv.expires_at)>new Date()&&<button type="button" disabled={teamBusy} onClick={()=>void revokeInvitation(inv.id)}>Revoke</button>}
+  </article>)}
+  <h3 className="admin-team-subtitle">Current access</h3>
+  {customers.filter(member=>['admin','owner','super_admin'].includes(member.role)).map(member=><article className="admin-team-row" key={member.id}><div><strong>{member.full_name||'Team member'}</strong><small>Joined {new Date(member.created_at).toLocaleDateString()}</small></div><span className="admin-role-pill">{member.role.replaceAll('_',' ')}</span><span className={member.is_active?'admin-active-pill':'admin-inactive-pill'}>{member.is_active?'Active':'Inactive'}</span></article>)}
+</section>}
       {activeTab==='diagnostics'&&<section className="admin-card inventory">
   <div className="admin-section-heading"><div><h2><Activity/> Live app health & diagnostics</h2><p>Runtime errors submitted by signed-in app users. Only the super-admin account can read these records.</p></div><button type="button" className="admin-refresh-button" onClick={()=>void refreshDiagnostics()} disabled={diagnosticsBusy}><RefreshCw size={15}/> {diagnosticsBusy?'Refreshing…':'Refresh'}</button></div>
   <div className="admin-health-summary"><article><strong>{diagnostics.length}</strong><span>Recent records</span></article><article><strong>{diagnostics.filter(x=>x.level==='error').length}</strong><span>Errors</span></article><article><strong>{diagnostics.filter(x=>x.level==='warning').length}</strong><span>Warnings</span></article><article><strong>{lastRefreshed?lastRefreshed.toLocaleTimeString():'—'}</strong><span>Last refresh</span></article></div>
