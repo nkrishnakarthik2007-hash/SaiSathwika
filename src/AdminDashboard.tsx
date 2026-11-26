@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X, LayoutDashboard, Users, Percent, Activity, ShoppingBag, RefreshCw, TrendingUp, Truck, LogOut, ChevronRight, UserPlus, Mail, BookOpen } from 'lucide-react';
+import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X, LayoutDashboard, Users, Percent, Activity, ShoppingBag, RefreshCw, TrendingUp, Truck, LogOut, ChevronRight, UserPlus, Mail, BookOpen, Search } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import HeritageMrpCatalog from './HeritageMrpCatalog';
 
@@ -94,6 +94,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     return saved && adminTabs.some(tab => tab.id === saved) ? saved as AdminTab : 'overview';
   });
   const [menuOpen,setMenuOpen]=useState(false);
+  const [menuSearch,setMenuSearch]=useState('');
   useEffect(() => { localStorage.setItem('sai-sathwika-admin-tab', activeTab); }, [activeTab]);
   const [customers,setCustomers]=useState<any[]>([]);
   const [customerSearch,setCustomerSearch]=useState('');
@@ -405,7 +406,11 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
           <span><LayoutDashboard size={18}/><strong>{adminTabs.find(tab=>tab.id===activeTab)?.label ?? 'Admin menu'}</strong></span>
           <span className="admin-menu-trigger-right">{menuOpen?'Close':'All sections'} <ChevronRight size={17}/></span>
         </button>
-        {menuOpen && <div className="admin-menu-dropdown">{adminTabs.filter(tab=>tab.id!=='team'||['super_admin','owner'].includes(role)).map(tab=>{const Icon=tab.icon;return <button type="button" key={tab.id} className={activeTab===tab.id?'active':''} onClick={()=>{setActiveTab(tab.id);setMenuOpen(false);window.scrollTo({top:0,behavior:'smooth'});}}><Icon size={18}/><span>{tab.label}</span>{activeTab===tab.id&&<span className="admin-menu-current">Current</span>}</button>;})}</div>}
+        {menuOpen && <div className="admin-menu-dropdown">
+          <label className="admin-menu-search"><Search size={16}/><input value={menuSearch} onChange={event=>setMenuSearch(event.target.value)} placeholder="Search admin sections…" aria-label="Search admin sections"/></label>
+          {adminTabs.filter(tab=>(tab.id!=='team'||['super_admin','owner'].includes(role))&&tab.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).map(tab=>{const Icon=tab.icon;return <button type="button" key={tab.id} className={activeTab===tab.id?'active':''} onClick={()=>{setActiveTab(tab.id);setMenuOpen(false);setMenuSearch('');window.scrollTo({top:0,behavior:'smooth'});}}><Icon size={18}/><span>{tab.label}</span>{activeTab===tab.id&&<span className="admin-menu-current">Current</span>}</button>;})}
+          {adminTabs.filter(tab=>(tab.id!=='team'||['super_admin','owner'].includes(role))&&tab.label.toLowerCase().includes(menuSearch.trim().toLowerCase())).length===0&&<p className="admin-menu-empty">No matching sections. Try another word.</p>}
+        </div>}
       </div>
       <nav className="admin-navigation" aria-label="Admin sections">{adminTabs.filter(tab=>tab.id!=='team'||['super_admin','owner'].includes(role)).map(tab=>{const Icon=tab.icon;return <button key={tab.id} className={activeTab===tab.id?'active':''} onClick={()=>setActiveTab(tab.id)}><Icon size={16}/><span>{tab.label}</span></button>;})}</nav>
       <div className="admin-stats"><article><PackagePlus/><strong>{products.length}</strong><span>Products</span></article><article><ShoppingBag/><strong>{pendingOrders}</strong><span>Open orders</span></article><article><Users/><strong>{customers.length||'—'}</strong><span>Customers</span></article><article><TrendingUp/><strong>₹{recentValue.toFixed(0)}</strong><span>Recent order value</span></article></div>
