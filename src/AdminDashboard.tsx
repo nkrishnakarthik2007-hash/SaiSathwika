@@ -124,15 +124,18 @@ export default function AdminDashboard({ onBack, onSignOut }: { onBack: () => vo
     setDiagnosticsBusy(true);
     const {data,error}=await supabase.from('app_diagnostics').select('id,received_at,app_version,platform,level,message,stack').order('received_at',{ascending:false}).limit(100);
     if(error)setMessage('Live health is restricted to the super-admin account. '+error.message);
-    else setDiagnostics(data??[]);
+    else{setDiagnostics(data??[]);setLastRefreshed(new Date());}
     setDiagnosticsBusy(false);
   }
   useEffect(()=>{
     void refresh();
     void refreshOrders();
+    void refreshCustomers();
     const channel=supabase?.channel('sai-sathwika-admin-live')
       .on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>void refreshOrders())
       .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>void refresh())
+      .on('postgres_changes',{event:'*',schema:'public',table:'profiles'},()=>void refreshCustomers())
+      .on('postgres_changes',{event:'*',schema:'public',table:'promotions'},()=>{if(activeTab==='promotions')void refreshPromotions();})
       .subscribe();
     return ()=>{if(channel)void supabase?.removeChannel(channel);};
   },[]);
