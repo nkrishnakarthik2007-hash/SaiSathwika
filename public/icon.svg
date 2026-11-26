@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="120" fill="#087c34"/><path d="M256 65c-38 83-130 151-130 250a130 130 0 0 0 260 0c0-99-92-167-130-250Z" fill="#fffdf7"/><path d="M256 164c-23 49-77 91-77 151a77 77 0 0 0 154 0c0-60-54-102-77-151Z" fill="#b6d957"/><text x="256" y="365" text-anchor="middle" font-family="Georgia,serif" font-size="74" font-weight="bold" fill="#087c34">S</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#111d52"/><stop offset="1" stop-color="#030719"/></linearGradient><linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#22d3ee"/><stop offset=".52" stop-color="#3b82f6"/><stop offset="1" stop-color="#c084fc"/></linearGradient><linearGradient id="arc" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#9333ea"/></linearGradient></defs>
+<rect width="1024" height="1024" fill="url(#bg)"/>
+<circle cx="512" cy="470" r="355" fill="none" stroke="url(#arc)" stroke-width="26" stroke-linecap="round" stroke-dasharray="1720 520" transform="rotate(-48 512 470)" opacity=".95"/>
+<path d="M700 270 C620 220 420 250 365 355 C296 492 506 488 637 550 C764 610 688 778 508 778 C436 778 364 747 315 704" fill="none" stroke="url(#ribbon)" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M512 786 C435 720 335 720 260 748 M512 786 C589 720 689 720 764 748 M512 786 L512 842" fill="none" stroke="#f4f6ff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M512 842 C434 780 341 777 270 805 M512 842 C590 780 683 777 754 805" fill="none" stroke="#dbeafe" stroke-width="15" stroke-linecap="round" opacity=".95"/>
+<path d="M805 200 L826 252 L878 273 L826 294 L805 346 L784 294 L732 273 L784 252 Z" fill="#fff"/>
+</svg>
