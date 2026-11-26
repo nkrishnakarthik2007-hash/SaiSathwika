@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Prepare build diagnostics
+        run: mkdir -p diagnostics
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -27,7 +29,9 @@ jobs:
           distribution: temurin
           java-version: 21
       - name: Install dependencies
-        run: npm install
+        run: |
+          set -o pipefail
+          npm install 2>&1 | tee diagnostics/npm-install.log
       - name: Validate Supabase app configuration
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -42,21 +46,32 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-        run: npm run build
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee diagnostics/web-build.log
       - name: Add Android platform
-        run: npx cap add android
-      - name: Configure Android OAuth deep link
-        run: node scripts/configure-android-deeplink.mjs
+        run: |
+          set -o pipefail
+          npx cap add android 2>&1 | tee diagnostics/capacitor-add-android.log
+      - name: Configure Android OAuth and native updater
+        run: |
+          set -o pipefail
+          node scripts/configure-android-deeplink.mjs 2>&1 | tee diagnostics/android-native-integration.log
       - name: Generate branded app icons and splash assets
         run: |
-          node scripts/generate-brand-assets.mjs
-          npx capacitor-assets generate --android
+          set -o pipefail
+          node scripts/generate-brand-assets.mjs 2>&1 | tee diagnostics/brand-assets.log
+          npx capacitor-assets generate --android 2>&1 | tee -a diagnostics/brand-assets.log
       - name: Sync Android app
-        run: npx cap sync android
+        run: |
+          set -o pipefail
+          npx cap sync android 2>&1 | tee diagnostics/capacitor-sync.log
       - name: Set increasing Android app version
         env:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
-        run: node scripts/set-android-version.mjs
+        run: |
+          set -o pipefail
+          node scripts/set-android-version.mjs 2>&1 | tee diagnostics/android-version.log
       - name: Check whether permanent Android signing is configured
         id: signing-check
         env:
@@ -84,7 +99,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
-          node scripts/configure-android-signing.mjs
+          node scripts/configure-android-signing.mjs 2>&1 | tee diagnostics/android-signing.log
       - name: Build release APK with permanent signing
         if: steps.signing-check.outputs.enabled == 'true'
         working-directory: android
@@ -93,17 +108,21 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: |
+          set -o pipefail
+          ./gradlew assembleRelease --stacktrace 2>&1 | tee ../diagnostics/android-release-build.log
       - name: Build debug APK (temporary testing only)
         if: steps.signing-check.outputs.enabled != 'true'
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --stacktrace 2>&1 | tee ../diagnostics/android-debug-build.log
       - name: Name installable APK
         run: |
           if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
-            cp android/app/build/outputs/apk/release/app-release.apk saisathwika.apk
+            cp android/app/build/outputs/apk/release/app-release.apk SaiSathwika.apk
           else
-            cp android/app/build/outputs/apk/debug/app-debug.apk saisathwika.apk
+            cp android/app/build/outputs/apk/debug/app-debug.apk SaiSathwika.apk
           fi
       - name: Upload website build
         uses: actions/upload-artifact@v4
@@ -114,7 +133,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sai-sathwika-android-${{ steps.signing-check.outputs.build_type }}
-          path: saisathwika.apk
+          path: SaiSathwika.apk
       - name: Publish APK to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
@@ -125,6 +144,37 @@ jobs:
 
             ${{ steps.signing-check.outputs.enabled == 'true' && 'This APK uses the configured permanent signing key and is suitable for in-place updates from installations signed with the same key.' || 'This is a temporary debug-signed testing build. Android may reject it as an update over an existing installation signed with a different key.' }}
 
-            Installable file: saisathwika.apk
+            Installable file: SaiSathwika.apk
           prerelease: true
-          files: saisathwika.apk
+          files: SaiSathwika.apk
+
+      - name: Capture build diagnostics
+        if: always()
+        run: |
+          mkdir -p diagnostics
+          {
+            echo "Project: Sai Sathwika"
+            echo "Workflow run: ${{ github.run_number }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Event: ${{ github.event_name }}"
+            echo "Runner: ${{ runner.os }}"
+            echo "Node: $(node --version 2>/dev/null || echo unavailable)"
+            echo "NPM: $(npm --version 2>/dev/null || echo unavailable)"
+            echo "Java:"
+            java -version 2>&1 || true
+            if [ -f SaiSathwika.apk ]; then
+              echo "APK:"
+              ls -lh SaiSathwika.apk
+              sha256sum SaiSathwika.apk
+            else
+              echo "APK was not produced."
+            fi
+          } > diagnostics/build-summary.txt 2>&1
+      - name: Archive build logs for future troubleshooting
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sai-sathwika-build-logs-${{ github.run_number }}
+          path: diagnostics
+          retention-days: 90
+          if-no-files-found: warn
