@@ -11,6 +11,7 @@ import { flushAppDiagnostics, installAppDiagnostics, recordAppDiagnostic } from 
 
 installAppDiagnostics();
 import AdminDashboard from './AdminDashboard';
+import DeliveryDashboard from './DeliveryDashboard';
 import MapPicker from './MapPicker';
 
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
@@ -222,7 +223,7 @@ export default function App() {
       return;
     }
     if (!roleResolved) return;
-    if (['admin','owner','super_admin'].includes(adminRole)) {
+    if (['admin','owner','super_admin','delivery_staff'].includes(adminRole)) {
       setLoginOpen(false);
       setAdminView(true);
     } else {
@@ -575,7 +576,11 @@ export default function App() {
     }
   }
 
-  if(adminView && ['admin','super_admin'].includes(adminRole)) return <AdminDashboard
+  if(adminView && adminRole === 'delivery_staff') return <DeliveryDashboard
+    onSignOut={async()=>{await supabase?.auth.signOut();setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
+  />;
+
+  if(adminView && ['admin','owner','super_admin'].includes(adminRole)) return <AdminDashboard
     role={adminRole}
     onBack={()=>{setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
     onSignOut={async()=>{await supabase?.auth.signOut();setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
