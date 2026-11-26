@@ -38,6 +38,10 @@ jobs:
           npx capacitor-assets generate --android
       - name: Sync Android app
         run: npx cap sync android
+      - name: Set increasing Android app version
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        run: node scripts/set-android-version.mjs
       - name: Check whether permanent Android signing is configured
         id: signing-check
         env:
