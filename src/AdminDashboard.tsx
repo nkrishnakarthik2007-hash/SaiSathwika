@@ -230,8 +230,15 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   async function adjustStock(id:string,current:number,delta:number){
     if(!supabase)return;
     const next=Math.max(0,current+delta);
-    const {error}=await supabase.from('products').update({stock_quantity:next}).eq('id',id);
-    if(error)setMessage(error.message);else{setMessage('Stock updated.');void refresh();}
+    const {data,error}=await supabase.from('products').update({stock_quantity:next}).eq('id',id).eq('stock_quantity',current).select('id').maybeSingle();
+    if(error){setMessage('Could not update stock: '+error.message);return;}
+    if(!data){
+      setMessage('Stock changed elsewhere. Inventory has been refreshed; please try again.');
+      void refresh();
+      return;
+    }
+    setMessage('Stock updated.');
+    void refresh();
   }
   function beginEdit(product:any){
     setEditingId(product.id);setEditImage(null);setEditName(product.name);setEditPrice(String(product.price));
