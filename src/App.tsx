@@ -4,7 +4,7 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { App as NativeApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import type { Session } from '@supabase/supabase-js';
-import { ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search, ShieldCheck, ShoppingBag, UserRound, X, Minus, Plus, PackageCheck, LocateFixed } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search, ShieldCheck, ShoppingBag, UserRound, X, Minus, Plus, PackageCheck, LocateFixed, Home, Store, ClipboardList, LogOut, UserCircle2, ChevronRight } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { AppUpdater } from './lib/app-updater';
 import { flushAppDiagnostics, installAppDiagnostics, recordAppDiagnostic } from './lib/diagnostics';
@@ -15,13 +15,14 @@ import MapPicker from './MapPicker';
 
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
+type CustomerPage = 'home' | 'shop' | 'orders' | 'profile';
 type AppUpdate = { tagName: string; apkUrl: string; releaseNotes: string; versionCode: number; sha256: string };
 
 const categoryIcons = [Milk, Leaf, IceCream, Milk];
 const fallbackCategories = ['Milk & Varieties', 'Curd & Buttermilk', 'Ice Creams', 'Butter, Ghee & Paneer'];
 
 export default function App() {
-  const [splashVisible, setSplashVisible] = useState(true);
+  const [customerPage, setCustomerPage] = useState<CustomerPage>('home');
   const [query, setQuery] = useState('');
   const [activeCategory,setActiveCategory]=useState<string|null>(null);
   const [cart, setCart] = useState<Record<string, number>>(() => {
@@ -45,7 +46,9 @@ export default function App() {
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
-  const [ordersOpen, setOrdersOpen] = useState(false);
+  const [customerAddresses, setCustomerAddresses] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [customerNote, setCustomerNote] = useState('');
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
@@ -119,25 +122,40 @@ export default function App() {
   }, []);
   useEffect(() => {
     let active = true;
-    // Keep the native Android launch screen on top until React has committed and
-    // painted the branded splash underneath it. This prevents the black WebView gap.
-    const dismissTimer = window.setTimeout(() => { if (active) setSplashVisible(false); }, 1450);
     let firstFrame: number | undefined;
     let secondFrame: number | undefined;
-    if (Capacitor.isNativePlatform()) {
-      firstFrame = window.requestAnimationFrame(() => {
-        secondFrame = window.requestAnimationFrame(() => {
-          if (active) void SplashScreen.hide({ fadeOutDuration: 320 }).catch((error) => {
-            recordAppDiagnostic('Native splash handoff failed: ' + String(error));
-          });
-        });
+    let removeTimer: number | undefined;
+    const bootScreen = document.getElementById('app-boot-screen');
+
+    const revealRenderedApp = () => {
+      if (!active) return;
+      bootScreen?.classList.add('app-boot-screen-hidden');
+      removeTimer = window.setTimeout(() => bootScreen?.remove(), 420);
+    };
+
+    // index.html paints the boot screen before React and its bundles load.
+    // The native splash stays above it until React has rendered the storefront.
+    firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        if (!active) return;
+        if (Capacitor.isNativePlatform()) {
+          void SplashScreen.hide({ fadeOutDuration: 260 })
+            .then(() => window.requestAnimationFrame(revealRenderedApp))
+            .catch((error) => {
+              recordAppDiagnostic('Native splash handoff failed: ' + String(error));
+              revealRenderedApp();
+            });
+        } else {
+          revealRenderedApp();
+        }
       });
-    }
+    });
+
     return () => {
       active = false;
-      window.clearTimeout(dismissTimer);
       if (firstFrame !== undefined) window.cancelAnimationFrame(firstFrame);
       if (secondFrame !== undefined) window.cancelAnimationFrame(secondFrame);
+      if (removeTimer !== undefined) window.clearTimeout(removeTimer);
     };
   }, []);
 
@@ -255,10 +273,70 @@ export default function App() {
     return next;
   });
   async function loadOrders() {
-    if(!supabase || !session) return;
-    const {data,error}=await supabase.from('orders').select('id,order_number,status,total,created_at,order_items(product_name_snapshot,quantity,line_total)').eq('customer_id',session.user.id).order('created_at',{ascending:false}).limit(20);
-    if(error) setNotice(error.message); else setCustomerOrders(data ?? []);
+    if (!supabase || !session) return;
+    setOrdersLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id,order_number,status,total,created_at,delivery_address_snapshot,order_items(product_name_snapshot,quantity,line_total)')
+        .eq('customer_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      setCustomerOrders(data ?? []);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not load your orders.');
+    } finally {
+      setOrdersLoading(false);
+    }
   }
+
+  async function loadCustomerAddresses() {
+    if (!supabase || !session) return;
+    setProfileLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('customer_addresses')
+        .select('id,label,recipient_name,phone,address_line,landmark,is_default')
+        .eq('customer_id', session.user.id)
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setCustomerAddresses(data ?? []);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not load your saved addresses.');
+    } finally {
+      setProfileLoading(false);
+    }
+  }
+
+  function navigateCustomerPage(page: CustomerPage) {
+    if ((page === 'orders' || page === 'profile') && !session) {
+      setLoginOpen(true);
+      setNotice('Sign in with Google to view your account and orders.');
+      return;
+    }
+    setCustomerPage(page);
+    setCartOpen(false);
+    if (page === 'orders') void loadOrders();
+    if (page === 'profile') void loadCustomerAddresses();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function signOutCustomer() {
+    if (!supabase) return;
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setNotice(error.message);
+      return;
+    }
+    setCustomerPage('home');
+    setCustomerAddresses([]);
+    setCustomerOrders([]);
+    setNotice('You have signed out successfully.');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function captureLocation() {
     if(!navigator.geolocation){setNotice('Location is not supported on this device.');return;}
     setLocationBusy(true);
@@ -341,15 +419,26 @@ export default function App() {
   return <main>
     <div className="announcement"><span>{storeAccepting===true?'We are accepting orders · Fresh dairy from your neighbourhood':storeAccepting===false?'Online ordering is not open yet · Browse our products':'Fresh dairy from your neighbourhood · Free delivery at launch'}</span><button className="update-check" onClick={appUpdate ? startAppUpdate : checkForUpdates} disabled={checkingUpdate || installingUpdate}>{checkingUpdate ? 'Checking…' : installingUpdate ? 'Downloading ' + updateProgress + '%' : appUpdate ? 'Download update · ' + appUpdate.tagName : 'Check for updates'}</button>{installingUpdate && <span className="update-progress-label" role="status">{updateProgress}% downloaded</span>}</div>
     <header className="header shell">
-      <a className="brand" href="#"><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></a>
-      <div className="location"><MapPin size={17}/><span><small>DELIVERING TO</small><strong>Select your address</strong></span></div>
+      <a className="brand" href="#" onClick={event => { event.preventDefault(); navigateCustomerPage('home'); }}><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></a>
+      <div className="location"><MapPin size={17}/><span><small>DELIVERING TO</small><strong>{address.address_line ? address.address_line.split(',')[0] : 'Select your address'}</strong></span></div>
+      <nav className="desktop-store-nav" aria-label="Store navigation">
+        <button className={customerPage === 'home' ? 'active' : ''} onClick={() => navigateCustomerPage('home')}>Home</button>
+        <button className={customerPage === 'shop' ? 'active' : ''} onClick={() => navigateCustomerPage('shop')}>Shop</button>
+        <button className={customerPage === 'orders' ? 'active' : ''} onClick={() => navigateCustomerPage('orders')}>My orders</button>
+      </nav>
       <div className="header-actions">
-        <button className="account" onClick={() => session ? supabase?.auth.signOut() : setLoginOpen(true)}><UserRound size={17}/>{session ? 'Sign out' : 'Sign in'}</button>
-        {['admin','super_admin'].includes(adminRole) && <button className="account" onClick={()=>setAdminView(true)}><ShieldCheck size={17}/> Admin</button>}
-        <button className="cart" onClick={() => setCartOpen(true)}><ShoppingBag size={19}/> Cart <b>{cartCount}</b></button>
+        {['admin','super_admin'].includes(adminRole) && <button className="account admin-shortcut" onClick={()=>setAdminView(true)}><ShieldCheck size={17}/> Admin</button>}
+        <button className="profile-trigger" aria-label={session ? 'Open my profile' : 'Sign in'} onClick={() => session ? navigateCustomerPage('profile') : setLoginOpen(true)}>
+          {session?.user.user_metadata?.avatar_url || session?.user.user_metadata?.picture
+            ? <img src={session.user.user_metadata.avatar_url || session.user.user_metadata.picture} alt="" referrerPolicy="no-referrer"/>
+            : <UserRound size={19}/>}
+          <span>{session ? 'Profile' : 'Sign in'}</span>
+        </button>
+        <button className="cart" onClick={() => setCartOpen(true)} aria-label={'Open cart with ' + cartCount + ' items'}><ShoppingBag size={19}/> Cart <b>{cartCount}</b></button>
       </div>
     </header>
 
+    {customerPage === 'home' && <>
     <section className="hero shell">
       <div className="hero-copy">
         <span className="eyebrow"><span className="dot"/> YOUR NEIGHBOURHOOD DAIRY STORE</span>
@@ -365,8 +454,16 @@ export default function App() {
       <div><Clock3/><span><strong>Easy ordering</strong><small>Order in just a few taps</small></span></div>
       <div><ShieldCheck/><span><strong>Trusted local store</strong><small>Personal service, every time</small></span></div>
     </section>
+      <section className="home-discovery shell">
+        <div><span className="eyebrow">SHOP THE SAI SATHWIKA WAY</span><h2>Everyday essentials, made easy.</h2><p>Find your regular dairy favourites, explore new products and get them delivered from your neighbourhood store.</p></div>
+        <button className="primary" onClick={() => navigateCustomerPage('shop')}>Explore the collection <ArrowRight size={17}/></button>
+        <div className="home-discovery-trust"><span><ShieldCheck size={17}/> Secure Google sign-in</span><span><PackageCheck size={17}/> Order tracking</span><span><MapPin size={17}/> Local delivery</span></div>
+      </section>
+    </>}
 
-    <section className="shop shell" id="shop">
+
+
+    {customerPage === 'shop' &&     <section className="shop shell" id="shop">
       <div className="section-heading"><div><span className="eyebrow">THE GOODNESS COLLECTION</span><h2>Shop by category</h2></div><span className="muted">Fresh picks from your local store</span></div>
       <div className="search"><Search size={19}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search products or brands..."/></div>
       <div className="categories">
@@ -378,7 +475,46 @@ export default function App() {
       {isSupabaseConfigured && !loading && products.length === 0 && <div className="empty-products"><div className="empty-icon"><ShoppingBag size={25}/></div><h3>Products are coming soon</h3><p>Our team is preparing the catalogue. Check back soon for fresh milk, curd, ice creams and more.</p></div>}
       {!loading && products.length>0 && filtered.length===0 && <div className="empty-products"><div className="empty-icon"><Search size={25}/></div><h3>No matching products</h3><p>Try another product name or choose a different category.</p><button className="clear-filter" onClick={()=>{setQuery('');setActiveCategory(null);}}>Clear search and filters</button></div>}
       {filtered.length > 0 && <div className="product-grid">{filtered.map(product => <article className="product-card" key={product.id}><div className="product-photo">{product.image_urls?.[0] ? <img src={product.image_urls[0]} alt={product.name}/> : <div className="photo-placeholder"><Milk size={35}/></div>}</div><div className="product-info"><small>{product.brands?.[0]?.name ?? 'Sai Sathwika'}</small><h3>{product.name}</h3><p>{[product.variant_label, product.unit].filter(Boolean).join(' · ')}</p><div className="product-bottom"><strong>₹{Number(product.price).toFixed(2)}</strong><button onClick={() => changeQty(product.id,1)} disabled={(cart[product.id]??0)>=product.stock_quantity}>{(cart[product.id]??0)>0?'Add more +':'Add +'}</button></div></div></article>)}</div>}
-    </section>
+    </section>}
+
+    {customerPage === 'orders' && <section className="customer-page shell">
+      <div className="customer-page-heading"><span className="eyebrow">YOUR SAI SATHWIKA ACCOUNT</span><h1>My orders</h1><p>Follow your delivery and see everything you've ordered.</p></div>
+      {ordersLoading ? <div className="customer-empty-state"><div className="loading-orbit"/><strong>Loading your orders…</strong></div>
+        : customerOrders.length === 0 ? <div className="customer-empty-state"><div className="customer-empty-icon"><PackageCheck size={28}/></div><h2>No orders yet</h2><p>Your orders will appear here after you place your first order.</p><button className="primary" onClick={() => navigateCustomerPage('shop')}>Start shopping <ArrowRight size={16}/></button></div>
+        : <div className="customer-orders-grid">{customerOrders.map(order => <article className="customer-order-card" key={order.id}>
+            <div className="customer-order-top"><div><small>ORDER NUMBER</small><strong>#{order.order_number}</strong></div><span className={'customer-order-status ' + order.status}>{String(order.status).replaceAll('_',' ')}</span></div>
+            <div className="customer-order-items">{(order.order_items ?? []).map((item:any) => <div key={item.product_name_snapshot}><span>{item.product_name_snapshot} × {item.quantity}</span><strong>₹{Number(item.line_total ?? 0).toFixed(2)}</strong></div>)}</div>
+            {order.delivery_address_snapshot?.address_line && <p className="customer-order-address"><MapPin size={14}/>{order.delivery_address_snapshot.address_line}</p>}
+            <div className="customer-order-bottom"><small>{new Date(order.created_at).toLocaleString()}</small><strong>₹{Number(order.total).toFixed(2)}</strong></div>
+          </article>)}</div>}
+    </section>}
+
+    {customerPage === 'profile' && session && <section className="customer-page shell">
+      <div className="customer-page-heading"><span className="eyebrow">YOUR ACCOUNT</span><h1>My profile</h1><p>Manage your account and saved delivery details.</p></div>
+      <section className="profile-summary-card">
+        <div className="profile-summary-avatar">{session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture ? <img src={session.user.user_metadata.avatar_url || session.user.user_metadata.picture} alt="" referrerPolicy="no-referrer"/> : <UserCircle2 size={36}/>}</div>
+        <div className="profile-summary-info"><strong>{session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'Sai Sathwika customer'}</strong><span>{session.user.email}</span><small><ShieldCheck size={13}/> Google account connected</small></div>
+        <button className="profile-signout" onClick={() => void signOutCustomer()}><LogOut size={16}/> Sign out</button>
+      </section>
+      <div className="profile-content-grid">
+        <section className="profile-content-card"><div className="profile-card-heading"><div><span className="eyebrow">DELIVERY DETAILS</span><h2>Saved addresses</h2></div><MapPin size={20}/></div>
+          {profileLoading ? <p className="profile-muted">Loading saved addresses…</p> : customerAddresses.length === 0 ? <p className="profile-muted">Your saved delivery addresses will appear here after your first order.</p> : customerAddresses.map(saved => <article className="saved-address" key={saved.id}><div><strong>{saved.label || 'Delivery address'} {saved.is_default && <span className="default-address-pill">Default</span>}</strong><p>{saved.recipient_name} · {saved.phone}</p><small>{saved.address_line}{saved.landmark ? ', ' + saved.landmark : ''}</small></div></article>)}
+        </section>
+        <section className="profile-content-card profile-quick-actions"><div className="profile-card-heading"><div><span className="eyebrow">QUICK ACCESS</span><h2>Your shopping</h2></div><ShoppingBag size={20}/></div>
+          <button onClick={() => navigateCustomerPage('orders')}><PackageCheck size={17}/> View my orders <ChevronRight size={16}/></button>
+          <button onClick={() => navigateCustomerPage('shop')}><Store size={17}/> Browse products <ChevronRight size={16}/></button>
+          <button onClick={() => setCartOpen(true)}><ShoppingBag size={17}/> Open my cart <ChevronRight size={16}/></button>
+        </section>
+      </div>
+    </section>}
+
+    <nav className="mobile-store-nav" aria-label="Mobile store navigation">
+      <button className={customerPage === 'home' ? 'active' : ''} onClick={() => navigateCustomerPage('home')}><Home size={19}/><span>Home</span></button>
+      <button className={customerPage === 'shop' ? 'active' : ''} onClick={() => navigateCustomerPage('shop')}><Store size={19}/><span>Shop</span></button>
+      <button className={customerPage === 'orders' ? 'active' : ''} onClick={() => navigateCustomerPage('orders')}><ClipboardList size={19}/><span>Orders</span></button>
+      <button className={customerPage === 'profile' ? 'active' : ''} onClick={() => navigateCustomerPage('profile')}><UserRound size={19}/><span>Profile</span></button>
+      <button onClick={() => setCartOpen(true)}><ShoppingBag size={19}/><span>Cart{cartCount ? ' · ' + cartCount : ''}</span></button>
+    </nav>
 
     <footer><div className="shell footer-inner"><div className="brand footer-brand"><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></div><p>Made with care for your neighbourhood.</p><small>© {new Date().getFullYear()} Sai Sathwika</small></div></footer>
 
@@ -402,10 +538,10 @@ export default function App() {
         </div>}
       </>}
     </section></div>}
-    {session && <section className="orders-strip shell"><button onClick={()=>{setOrdersOpen(v=>!v);if(!ordersOpen)void loadOrders();}}><PackageCheck size={17}/> {ordersOpen?'Hide':'View'} my orders</button>{ordersOpen && <div className="orders-list">{customerOrders.length===0?<p>No orders yet.</p>:customerOrders.map(o=><article key={o.id}><div><strong>Order #{o.order_number}</strong><small>{new Date(o.created_at).toLocaleString()}</small>{(o.order_items??[]).map((i:any)=><small key={i.product_name_snapshot}>{i.product_name_snapshot} × {i.quantity}</small>)}</div><div><b>₹{Number(o.total).toFixed(2)}</b><span className={'order-status '+o.status}>{String(o.status).replaceAll('_',' ')}</span></div></article>)}</div>}</section>}
+
     {mapPickerOpen && coords && <MapPicker initial={coords} onClose={()=>setMapPickerOpen(false)} onConfirm={point=>{setCoords(point);setMapPickerOpen(false);setNotice('Delivery pin updated.');}}/>}
     {loginOpen && <div className="modal-backdrop" onClick={() => setLoginOpen(false)}><section className="login-modal" onClick={e => e.stopPropagation()}><button className="modal-close" onClick={() => setLoginOpen(false)}><X size={19}/></button><div className="login-logo">S</div><span className="eyebrow">WELCOME TO SAI SATHWIKA</span><h2>Freshness is one tap away.</h2><p>Sign in securely with your Google account to save your address and orders.</p><button className="google-button" onClick={signIn}><span className="google-g">G</span> Continue with Google</button><small>Your account details are protected. We never ask for your Google password.</small></section></div>}
-    {splashVisible && <div className="brand-splash" role="status" aria-label="Loading Sai Sathwika"><div className="splash-glow splash-glow-one"/><div className="splash-glow splash-glow-two"/><div className="splash-brand-mark"><span>S</span><i/></div><div className="splash-wordmark">Sai Sathwika</div><div className="splash-tagline">FRESHNESS AT YOUR DOORSTEP</div><div className="splash-loader"><span/></div><div className="splash-credit">Made with <b>♥</b> by <strong>Krishna Karthik</strong></div></div>}
+
     {notice && <div className="notice" role="status"><CheckCircle2 size={17}/>{notice}<button onClick={() => setNotice('')}><X size={16}/></button></div>}
   </main>;
 }
