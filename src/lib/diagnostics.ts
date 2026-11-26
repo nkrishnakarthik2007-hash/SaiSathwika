@@ -15,7 +15,7 @@ let installed = false;
 
 function redact(value: string): string {
   return value
-    .replace(/(access_token|refresh_token|client_secret|code_verifier|apikey)=([^&\\s]+)/gi, '$1=[redacted]')
+    .replace(/(access_token|refresh_token|client_secret|code_verifier|apikey)=([^&\s]+)/gi, '$1=[redacted]')
     .slice(0, 5000);
 }
 
