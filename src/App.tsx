@@ -340,11 +340,22 @@ export default function App() {
   const cartProducts = products.filter(p => cart[p.id]);
   const cartCount = cartProducts.reduce((total,p)=>total+(cart[p.id]??0),0);
   const cartSubtotal = cartProducts.reduce((sum,p) => sum + Number(p.price) * (cart[p.id] ?? 0), 0);
-  const changeQty = (id:string, delta:number) => setCart(current => {
-    const next={...current}; const product=products.find(p=>p.id===id); const qty=(next[id] ?? 0)+delta;
-    if(qty<=0) delete next[id]; else if(product) next[id]=Math.min(qty,product.stock_quantity);
-    return next;
-  });
+  const changeQty = (id:string, delta:number) => {
+    const product=products.find(p=>p.id===id);
+    if(!product)return;
+    const maxQuantity=Math.min(50,Math.max(0,Math.floor(Number(product.stock_quantity)||0)));
+    setCart(current=>{
+      const next={...current};
+      const currentQuantity=Math.max(0,Math.floor(Number(current[id])||0));
+      const requestedQuantity=currentQuantity+delta;
+      if(requestedQuantity<=0)delete next[id];
+      else next[id]=Math.min(requestedQuantity,maxQuantity);
+      return next;
+    });
+    if(delta>0&&(Number(cart[id])||0)>=maxQuantity){
+      setNotice(maxQuantity===0?'This product is currently out of stock.':'You can add up to '+maxQuantity+' units of this product.');
+    }
+  };
 
   useEffect(() => {
     const client = supabase;
