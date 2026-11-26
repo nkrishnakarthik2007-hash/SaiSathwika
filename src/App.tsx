@@ -303,6 +303,8 @@ export default function App() {
 
   async function loadRole(userId: string) {
     if(!supabase)return;
+    const {error:inviteError}=await supabase.functions.invoke('team-invitations',{body:{action:'accept'}});
+    if(inviteError)recordAppDiagnostic('Invitation check failed: '+inviteError.message);
     const {data,error}=await supabase.from('profiles').select('role').eq('id',userId).maybeSingle();
     if(error)recordAppDiagnostic('Could not load account role: '+error.message);
     setAdminRole(data?.role ?? 'customer');
