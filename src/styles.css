@@ -257,3 +257,51 @@ button.primary{font-family:'DM Sans';cursor:pointer}
 .admin-top-actions{display:flex;align-items:center;gap:8px}
 .admin-signout{display:inline-flex;align-items:center;gap:7px;border:1px solid #f0dcd7;border-radius:9px;background:#fff8f6;color:#a64c41;padding:9px 11px;font:700 10px 'DM Sans';cursor:pointer}
 @media(max-width:760px){.admin-top-actions .admin-refresh-button{font-size:0;padding:9px}.admin-signout{font-size:0;padding:9px}.admin-top-actions svg{width:16px;height:16px}}
+
+
+/* Sai Sathwika customer storefront: unified warm, premium dairy palette */
+:root{color-scheme:light;font-family:'DM Sans',sans-serif;color:#24432f;background:#fbfaf4}
+html,body,#root{min-height:100%;background:#fbfaf4!important;color:#24432f}
+body{background:#fbfaf4!important}
+main{min-height:100vh;background:#fbfaf4!important;color:#24432f}
+.announcement{background:linear-gradient(100deg,#176b3a,#258447)!important;color:#fff!important}
+.header{background:rgba(255,253,247,.97)!important;border-bottom-color:#e8eddf!important}
+.hero{background:linear-gradient(120deg,#f1f8e9 0%,#fff9eb 66%,#e7f2dd 100%)!important}
+.benefits{background:#fbfaf4}
+.shop,.customer-page{background:#fbfaf4!important;color:#24432f}
+.shop h2,.customer-page-heading h1{color:#1c4c30!important}
+.section-heading .muted,.customer-page-heading p{color:#718274}
+.category,.product-card,.profile-content-card,.profile-summary-card,.customer-order-card{background:#fff!important;border-color:#e7ecdf!important}
+.category h3,.product-info h3,.profile-card-heading h2{color:#244a31!important}
+.category p,.product-info p,.profile-muted{color:#7d8b7e!important}
+.search{background:#fff!important;border-color:#e3eadf!important}
+.empty-products,.customer-empty-state{background:#fffefa!important;border-color:#dce8d8!important}
+footer{background:linear-gradient(110deg,#edf5e7,#f8f7ed)!important;border-top:1px solid #e4ebdf}
+.footer-inner{gap:12px 22px;flex-wrap:wrap;padding-top:24px;padding-bottom:24px}
+.footer-creator{display:grid;gap:4px;text-align:right;color:#47664c;font-size:11px}
+.footer-creator strong{color:#245a36;font-size:11px}
+.footer-creator span,.footer-creator small{color:#829080;font-size:10px}
+.primary,.place-order-button{background:linear-gradient(110deg,#176b39,#23864a)!important;box-shadow:0 8px 20px #176b3920}
+.product-bottom button,.category.active-category{border-color:#a8c9a3!important;background:#f1f8ed!important;color:#216c39!important}
+.mobile-store-nav{background:rgba(255,254,249,.97)!important;border-top-color:#e4ebdf!important}
+.mobile-store-nav button.active{background:#eaf4e5!important;color:#176b39!important}
+.notice{background:#1b6037!important}
+@media(max-width:700px){
+  .announcement{padding:7px 10px!important;min-height:34px;font-size:10px!important;line-height:1.35}
+  .announcement .update-check{padding:5px 10px;font-size:9px}
+  .hero{border-radius:0 0 25px 25px}
+  .hero-copy{padding-top:32px!important}
+  .hero h1{font-size:clamp(43px,12vw,54px)!important}
+  .categories{display:flex!important;gap:12px!important;overflow-x:auto!important;padding:2px 2px 12px;scroll-snap-type:x mandatory;scrollbar-width:none}
+  .categories::-webkit-scrollbar{display:none}
+  .category{flex:0 0 min(78vw,290px);scroll-snap-align:start;min-height:92px;border-radius:18px;padding:14px}
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
+  .product-photo{height:142px!important}
+  .shop{padding-top:34px!important}
+  .customer-page{padding-top:28px!important}
+  .footer-inner{padding-bottom:100px!important}
+  .footer-creator{text-align:left;width:100%}
+}
+@media(prefers-color-scheme:dark){
+  :root,html,body,#root,main,.shop,.customer-page{color-scheme:light!important;background:#fbfaf4!important;color:#24432f!important}
+}
