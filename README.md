@@ -20,3 +20,17 @@ This project must use a dedicated Supabase project. Do not connect it to NKKAMS 
 
 ## Status
 Project initialized. Customer storefront, authentication, database schema, admin dashboard, delivery-radius checks and Android packaging are next.
+
+## Android releases and updates
+
+- Android releases use the permanent signing key configured in GitHub Actions.
+- The APK is published as `SaiSathwika.apk` with the app's launcher icon embedded.
+- The app checks GitHub Releases and downloads newer APKs inside the app.
+- Android's Package Installer presents the final confirmation; the app does not silently install updates.
+- Regular updates use the same package ID and signing key, so they install over the existing app without an uninstall.
+
+## Diagnostics
+
+- GitHub Actions uploads build logs and a build summary as a `sai-sathwika-build-logs-<run>` artifact for 90 days.
+- Runtime JavaScript errors are kept locally until a customer signs in, then synced to the private `public.app_diagnostics` table.
+- Only the designated super-admin can read submitted runtime diagnostics. Logs redact common token and secret query parameters.
