@@ -468,3 +468,8 @@ footer{background:linear-gradient(110deg,#edf5e7,#f8f7ed)!important;border-top:1
 .admin-menu-current{margin-left:auto;font-size:10px;color:#4875ad}
 @media(min-width:701px){.admin-menu-trigger{display:none}.admin-nav-wrap{margin-bottom:0}.admin-navigation{margin-top:24px}}
 @media(max-width:700px){.admin-shell{padding:22px 14px 90px}.admin-navigation{display:none}.admin-heading h1{font-size:28px}.admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-menu-dropdown button{min-height:48px}}
+
+.admin-menu-search{display:flex;align-items:center;gap:9px;padding:11px 12px;margin:2px 2px 8px;border:1px solid #e5eaf1;border-radius:10px;background:#f8fafc;color:#718096}
+.admin-menu-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#203653;font:500 12px 'DM Sans'}
+.admin-menu-search input::placeholder{color:#98a3b3}
+.admin-menu-empty{margin:0;padding:16px 12px;color:#78869a;font-size:12px;text-align:center}
