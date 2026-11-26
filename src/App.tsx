@@ -576,6 +576,7 @@ export default function App() {
   }
 
   if(adminView && ['admin','super_admin'].includes(adminRole)) return <AdminDashboard
+    role={adminRole}
     onBack={()=>{setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
     onSignOut={async()=>{await supabase?.auth.signOut();setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
   />;
