@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { App as NativeApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import type { Session } from '@supabase/supabase-js';
 import { ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search, ShieldCheck, ShoppingBag, UserRound, X, Minus, Plus, PackageCheck, LocateFixed } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
@@ -9,6 +11,7 @@ import MapPicker from './MapPicker';
 
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
+type AppUpdate = { tagName: string; apkUrl: string; releaseNotes: string; versionCode: number };
 
 const categoryIcons = [Milk, Leaf, IceCream, Milk];
 const fallbackCategories = ['Milk & Varieties', 'Curd & Buttermilk', 'Ice Creams', 'Butter, Ghee & Paneer'];
@@ -40,7 +43,39 @@ export default function App() {
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [customerNote, setCustomerNote] = useState('');
+  const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
 
+  async function checkForUpdates() {
+    if (Capacitor.getPlatform() !== 'android') { setNotice('App updates are available from the Android app only.'); return; }
+    setCheckingUpdate(true);
+    try {
+      const [installed, response] = await Promise.all([
+        NativeApp.getInfo(),
+        fetch('https://api.github.com/repos/nkrishnakarthik2007-hash/SaiSathwika/releases?per_page=1', { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' }),
+      ]);
+      if (!response.ok) throw new Error('Could not check GitHub releases. Please try again.');
+      const releases = await response.json() as Array<{ tag_name: string; body?: string; assets?: Array<{ name: string; browser_download_url: string }> }>;
+      const latest = releases[0];
+      const apk = latest?.assets?.find(asset => asset.name.toLowerCase() === 'saisathwika.apk');
+      const latestVersionCode = Number(latest?.tag_name?.split('.').at(-1));
+      const installedVersionCode = Number(installed.versionCode ?? 0);
+      if (!latest || !apk || !Number.isFinite(latestVersionCode)) throw new Error('The latest release does not contain a valid Android APK.');
+      if (latestVersionCode > installedVersionCode) {
+        setAppUpdate({ tagName: latest.tag_name, apkUrl: apk.browser_download_url, releaseNotes: latest.body ?? '', versionCode: latestVersionCode });
+        setNotice('A new version (' + latest.tag_name + ') is available.');
+      } else { setAppUpdate(null); setNotice('You are using the latest Sai Sathwika version.'); }
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not check for updates.'); }
+    finally { setCheckingUpdate(false); }
+  }
+
+  async function startAppUpdate() {
+    if (!appUpdate) return;
+    try { await Browser.open({ url: appUpdate.apkUrl }); }
+    catch { window.location.href = appUpdate.apkUrl; }
+  }
+
+  useEffect(() => { if (Capacitor.getPlatform() === 'android') void checkForUpdates(); }, []);
   useEffect(() => {
     let active = true;
     // Keep the native Android splash visible until React has painted the branded
@@ -169,7 +204,7 @@ export default function App() {
   if(adminView && ['admin','super_admin'].includes(adminRole)) return <AdminDashboard onBack={()=>setAdminView(false)}/>;
 
   return <main>
-    <div className="announcement">{storeAccepting===true?'We are accepting orders · Fresh dairy from your neighbourhood':storeAccepting===false?'Online ordering is not open yet · Browse our products':'Fresh dairy from your neighbourhood · Free delivery at launch'}</div>
+    <div className="announcement"><span>{storeAccepting===true?'We are accepting orders · Fresh dairy from your neighbourhood':storeAccepting===false?'Online ordering is not open yet · Browse our products':'Fresh dairy from your neighbourhood · Free delivery at launch'}</span><button className="update-check" onClick={appUpdate ? startAppUpdate : checkForUpdates} disabled={checkingUpdate}>{checkingUpdate ? 'Checking…' : appUpdate ? 'Update available · ' + appUpdate.tagName : 'Check for updates'}</button></div>
     <header className="header shell">
       <a className="brand" href="#"><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></a>
       <div className="location"><MapPin size={17}/><span><small>DELIVERING TO</small><strong>Select your address</strong></span></div>
