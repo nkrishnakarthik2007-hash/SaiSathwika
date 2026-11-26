@@ -11,17 +11,17 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <title>Sai Sathwika | Freshness at Your Doorstep</title>
   <style>
-    html,body{margin:0;min-height:100%;background:#030719}
+    html,body{margin:0;min-height:100%;background:#f7f8ee}
     #root{min-height:100vh}
-    #app-boot-screen{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 50% 42%,#17235c 0%,#0b1238 44%,#030719 100%);color:#f7f8ff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;opacity:1;transition:opacity .32s ease}
-    #app-boot-screen:before,#app-boot-screen:after{content:"";position:absolute;width:min(86vw,520px);aspect-ratio:1;border:1px solid #9bb8ff20;border-radius:50%;pointer-events:none}
-    #app-boot-screen:after{width:min(68vw,400px);border-color:#9bb8ff18}
-    #app-boot-screen .boot-logo{position:relative;width:108px;height:108px;filter:drop-shadow(0 18px 34px #070b3588);animation:boot-float 2.3s ease-in-out infinite}
-    #app-boot-screen .boot-name{position:relative;margin-top:25px;font-family:Georgia,serif;font-weight:700;font-size:31px;letter-spacing:.01em}
-    #app-boot-screen .boot-tagline{position:relative;margin-top:9px;font-size:9px;font-weight:700;letter-spacing:.24em;color:#c8d4fa}
-    #app-boot-screen .boot-track{position:relative;width:112px;height:3px;margin-top:34px;overflow:hidden;border-radius:9px;background:#ffffff35}
-    #app-boot-screen .boot-track span{display:block;width:42%;height:100%;border-radius:9px;background:linear-gradient(90deg,#22d3ee,#c084fc);animation:boot-progress 1.35s ease-in-out infinite}
-    #app-boot-screen .boot-caption{position:absolute;bottom:max(30px,env(safe-area-inset-bottom));font-size:11px;color:#aebce9}
+    #app-boot-screen{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 50% 42%,#ffffff 0%,#f1f7e9 52%,#e5f0dd 100%);color:#19472d;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;opacity:1;transition:opacity .32s ease}
+    #app-boot-screen:before,#app-boot-screen:after{content:"";position:absolute;width:min(86vw,520px);aspect-ratio:1;border:1px solid #2e7d4620;border-radius:50%;pointer-events:none}
+    #app-boot-screen:after{width:min(68vw,400px);border-color:#2e7d4618}
+    #app-boot-screen .boot-logo{position:relative;width:108px;height:108px;filter:drop-shadow(0 18px 34px #52734a30);animation:boot-float 2.3s ease-in-out infinite}
+    #app-boot-screen .boot-name{position:relative;margin-top:25px;color:#19472d;font-family:Georgia,serif;font-weight:700;font-size:31px;letter-spacing:.01em}
+    #app-boot-screen .boot-tagline{position:relative;margin-top:9px;font-size:9px;font-weight:700;letter-spacing:.24em;color:#64836a}
+    #app-boot-screen .boot-track{position:relative;width:112px;height:3px;margin-top:34px;overflow:hidden;border-radius:9px;background:#dce9d8}
+    #app-boot-screen .boot-track span{display:block;width:42%;height:100%;border-radius:9px;background:linear-gradient(90deg,#1c8b4b,#d5ad52);animation:boot-progress 1.35s ease-in-out infinite}
+    #app-boot-screen .boot-caption{position:absolute;bottom:max(30px,env(safe-area-inset-bottom));font-size:11px;color:#718773}
     #app-boot-error{display:none;position:relative;z-index:2;width:min(88vw,380px);margin-top:22px;padding:16px 18px;border:1px solid #ffffff30;border-radius:16px;background:#ffffff12;backdrop-filter:blur(14px);text-align:center;color:#eef2ff}
     #app-boot-error p{margin:0 0 12px;font-size:12px;line-height:1.6;color:#d5defc}
     #app-boot-error button{border:0;border-radius:10px;background:#fff;color:#17224f;padding:10px 18px;font:700 12px system-ui;cursor:pointer}
@@ -29,6 +29,9 @@
     @keyframes boot-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
     @keyframes boot-progress{0%{transform:translateX(-115%)}100%{transform:translateX(290%)}}
     @media(prefers-reduced-motion:reduce){#app-boot-screen .boot-logo,#app-boot-screen .boot-track span{animation:none}}
+    #app-boot-screen .boot-credit{position:absolute;bottom:max(58px,calc(env(safe-area-inset-bottom) + 58px));display:grid;gap:5px;text-align:center;font-size:10px;color:#758a72;letter-spacing:.02em}
+    #app-boot-screen .boot-credit strong{color:#28643a}
+    #app-boot-screen .boot-credit span{font-size:9px;color:#94a08d}
   </style>
   <script>
     (() => {
@@ -75,7 +78,7 @@
   <div id="app-boot-screen" role="status" aria-live="polite" aria-label="Starting Sai Sathwika">
     <svg class="boot-logo" viewBox="0 0 120 120" aria-hidden="true">
       <defs>
-        <linearGradient id="boot-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#22d3ee"/><stop offset=".52" stop-color="#3b82f6"/><stop offset="1" stop-color="#9333ea"/></linearGradient>
+        <linearGradient id="boot-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#248a4a"/><stop offset=".58" stop-color="#17643a"/><stop offset="1" stop-color="#c9a34a"/></linearGradient>
       </defs>
       <rect x="4" y="4" width="112" height="112" rx="34" fill="url(#boot-bg)" stroke="#a5f3fc" stroke-opacity=".55"/>
       <path d="M82 31C70 23 40 26 34 42c-8 22 22 22 39 31 16 8 7 29-17 29-10 0-20-4-27-10" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round"/>
@@ -85,7 +88,8 @@
     <div class="boot-name">Sai Sathwika</div>
     <div class="boot-tagline">FRESHNESS AT YOUR DOORSTEP</div>
     <div class="boot-track"><span></span></div>
-    <div id="app-boot-caption" class="boot-caption">Preparing your store…</div>
+    <div id="app-boot-caption" class="boot-caption">A little freshness is on its way…</div>
+    <div class="boot-credit">Made with love by <strong>Krishna Karthik</strong><span>Created in Andhra Pradesh, India</span></div>
     <div id="app-boot-error" role="alert" aria-live="assertive">
       <p id="app-boot-error-message">We found a startup problem. Your error details will be saved on this device.</p>
       <button type="button" onclick="window.location.reload()">Try again</button>
