@@ -6,12 +6,16 @@ import { Browser } from '@capacitor/browser';
 import type { Session } from '@supabase/supabase-js';
 import { ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search, ShieldCheck, ShoppingBag, UserRound, X, Minus, Plus, PackageCheck, LocateFixed } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
+import { AppUpdater } from './lib/app-updater';
+import { flushAppDiagnostics, installAppDiagnostics, recordAppDiagnostic } from './lib/diagnostics';
+
+installAppDiagnostics();
 import AdminDashboard from './AdminDashboard';
 import MapPicker from './MapPicker';
 
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
-type AppUpdate = { tagName: string; apkUrl: string; releaseNotes: string; versionCode: number };
+type AppUpdate = { tagName: string; apkUrl: string; releaseNotes: string; versionCode: number; sha256: string };
 
 const categoryIcons = [Milk, Leaf, IceCream, Milk];
 const fallbackCategories = ['Milk & Varieties', 'Curd & Buttermilk', 'Ice Creams', 'Butter, Ghee & Paneer'];
@@ -45,6 +49,8 @@ export default function App() {
   const [customerNote, setCustomerNote] = useState('');
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
 
   async function checkForUpdates() {
     if (Capacitor.getPlatform() !== 'android') { setNotice('App updates are available from the Android app only.'); return; }
@@ -55,24 +61,51 @@ export default function App() {
         fetch('https://api.github.com/repos/nkrishnakarthik2007-hash/SaiSathwika/releases?per_page=1', { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' }),
       ]);
       if (!response.ok) throw new Error('Could not check GitHub releases. Please try again.');
-      const releases = await response.json() as Array<{ tag_name: string; body?: string; assets?: Array<{ name: string; browser_download_url: string }> }>;
+      const releases = await response.json() as Array<{ tag_name: string; body?: string; assets?: Array<{ name: string; browser_download_url: string; digest?: string }> }>;
       const latest = releases[0];
       const apk = latest?.assets?.find(asset => asset.name.toLowerCase() === 'saisathwika.apk');
       const latestVersionCode = Number(latest?.tag_name?.split('.').at(-1));
       const installedVersionCode = Number(installed.build ?? 0);
       if (!latest || !apk || !Number.isFinite(latestVersionCode)) throw new Error('The latest release does not contain a valid Android APK.');
       if (latestVersionCode > installedVersionCode) {
-        setAppUpdate({ tagName: latest.tag_name, apkUrl: apk.browser_download_url, releaseNotes: latest.body ?? '', versionCode: latestVersionCode });
+        setAppUpdate({ tagName: latest.tag_name, apkUrl: apk.browser_download_url, releaseNotes: latest.body ?? '', versionCode: latestVersionCode, sha256: apk.digest ?? '' });
         setNotice('A new version (' + latest.tag_name + ') is available.');
       } else { setAppUpdate(null); setNotice('You are using the latest Sai Sathwika version.'); }
-    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not check for updates.'); }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not check for updates.';
+      recordAppDiagnostic('Update check failed: ' + message, error instanceof Error ? error.stack : null);
+      setNotice(message);
+    }
     finally { setCheckingUpdate(false); }
   }
 
   async function startAppUpdate() {
-    if (!appUpdate) return;
-    try { await Browser.open({ url: appUpdate.apkUrl }); }
-    catch { window.location.href = appUpdate.apkUrl; }
+    if (!appUpdate || installingUpdate) return;
+    setInstallingUpdate(true);
+    setUpdateProgress(0);
+    let progressListener: { remove: () => Promise<void> } | undefined;
+    try {
+      progressListener = await AppUpdater.addListener('downloadProgress', (progress) => {
+        setUpdateProgress(Math.max(0, Math.min(100, progress.percent || 0)));
+      });
+      const result = await AppUpdater.downloadAndInstall({
+        url: appUpdate.apkUrl,
+        sha256: appUpdate.sha256,
+      });
+      recordAppDiagnostic('APK downloaded and handed to Android installer. Version code: ' + result.versionCode, null, 'warning');
+      setNotice('Update downloaded. Complete the installation in the Android installer.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not download the update.';
+      recordAppDiagnostic('In-app update failed: ' + message, error instanceof Error ? error.stack : null);
+      if (message.includes('INSTALL_PERMISSION_REQUIRED')) {
+        setNotice('Allow Sai Sathwika to install apps in Android settings. Return here and tap Update again.');
+      } else {
+        setNotice(message);
+      }
+    } finally {
+      await progressListener?.remove().catch(() => undefined);
+      setInstallingUpdate(false);
+    }
   }
 
   useEffect(() => {
@@ -86,19 +119,25 @@ export default function App() {
   }, []);
   useEffect(() => {
     let active = true;
-    // Keep the native Android splash visible until React has painted the branded
-    // in-app splash. Hiding it immediately creates a dark/blank WebView flash.
-    const dismissTimer = window.setTimeout(() => { if (active) setSplashVisible(false); }, 2100);
-    let nativeHideTimer: number | undefined;
+    // Keep the native Android launch screen on top until React has committed and
+    // painted the branded splash underneath it. This prevents the black WebView gap.
+    const dismissTimer = window.setTimeout(() => { if (active) setSplashVisible(false); }, 1450);
+    let firstFrame: number | undefined;
+    let secondFrame: number | undefined;
     if (Capacitor.isNativePlatform()) {
-      nativeHideTimer = window.setTimeout(() => {
-        if (active) void SplashScreen.hide({ fadeOutDuration: 450 }).catch(() => undefined);
-      }, 350);
+      firstFrame = window.requestAnimationFrame(() => {
+        secondFrame = window.requestAnimationFrame(() => {
+          if (active) void SplashScreen.hide({ fadeOutDuration: 320 }).catch((error) => {
+            recordAppDiagnostic('Native splash handoff failed: ' + String(error));
+          });
+        });
+      });
     }
     return () => {
       active = false;
       window.clearTimeout(dismissTimer);
-      if (nativeHideTimer !== undefined) window.clearTimeout(nativeHideTimer);
+      if (firstFrame !== undefined) window.cancelAnimationFrame(firstFrame);
+      if (secondFrame !== undefined) window.cancelAnimationFrame(secondFrame);
     };
   }, []);
 
@@ -107,9 +146,27 @@ export default function App() {
   }, [cart]);
 
   useEffect(() => {
-    if (!supabase) { setLoading(false); return; }
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); if(data.session) void loadRole(data.session.user.id); });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => { setSession(next); if(next) { Promise.resolve().then(()=>loadRole(next.user.id)); } else { setAdminRole('customer'); setAdminView(false); } });
+    const client = supabase;
+    if (!client) { setLoading(false); return; }
+    client.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      if (data.session) {
+        void loadRole(data.session.user.id);
+        void flushAppDiagnostics(client, data.session.user.id);
+      }
+    });
+    const { data: listener } = client.auth.onAuthStateChange((_event, next) => {
+      setSession(next);
+      if (next) {
+        Promise.resolve().then(() => {
+          void loadRole(next.user.id);
+          void flushAppDiagnostics(client, next.user.id);
+        });
+      } else {
+        setAdminRole('customer');
+        setAdminView(false);
+      }
+    });
     return () => listener.subscription.unsubscribe();
   }, []);
 
@@ -282,7 +339,7 @@ export default function App() {
   if(adminView && ['admin','super_admin'].includes(adminRole)) return <AdminDashboard onBack={()=>setAdminView(false)}/>;
 
   return <main>
-    <div className="announcement"><span>{storeAccepting===true?'We are accepting orders · Fresh dairy from your neighbourhood':storeAccepting===false?'Online ordering is not open yet · Browse our products':'Fresh dairy from your neighbourhood · Free delivery at launch'}</span><button className="update-check" onClick={appUpdate ? startAppUpdate : checkForUpdates} disabled={checkingUpdate}>{checkingUpdate ? 'Checking…' : appUpdate ? 'Update available · ' + appUpdate.tagName : 'Check for updates'}</button></div>
+    <div className="announcement"><span>{storeAccepting===true?'We are accepting orders · Fresh dairy from your neighbourhood':storeAccepting===false?'Online ordering is not open yet · Browse our products':'Fresh dairy from your neighbourhood · Free delivery at launch'}</span><button className="update-check" onClick={appUpdate ? startAppUpdate : checkForUpdates} disabled={checkingUpdate || installingUpdate}>{checkingUpdate ? 'Checking…' : installingUpdate ? 'Downloading ' + updateProgress + '%' : appUpdate ? 'Download update · ' + appUpdate.tagName : 'Check for updates'}</button>{installingUpdate && <span className="update-progress-label" role="status">{updateProgress}% downloaded</span>}</div>
     <header className="header shell">
       <a className="brand" href="#"><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></a>
       <div className="location"><MapPin size={17}/><span><small>DELIVERING TO</small><strong>Select your address</strong></span></div>
