@@ -19,7 +19,7 @@ A single-store dairy and ice-cream commerce application.
 This project must use a dedicated Supabase project. Do not connect it to NKKAMS or student-attendance. Never commit secrets or Supabase service-role keys.
 
 ## Status
-Project initialized. Customer storefront, authentication, database schema, admin dashboard, delivery-radius checks and Android packaging are next.
+An early working prototype now includes the customer storefront, Google sign-in flow, Supabase schema and RLS, admin dashboard, cart/order flow, delivery-radius checks, diagnostics and Android packaging. The live store is **not ready to accept orders**: the database currently has no products, no configured store coordinates and `accepting_orders` is false. GitHub Pages is not enabled for this repository, so the public storefront host is not yet verified. The Windows admin companion is source-only until its installer workflow and hosted frontend are configured. Checkout currently uses cash on delivery; no online payment gateway is connected.
 
 ## Android releases and updates
 
@@ -32,5 +32,6 @@ Project initialized. Customer storefront, authentication, database schema, admin
 ## Diagnostics
 
 - GitHub Actions uploads build logs and a build summary as a `sai-sathwika-build-logs-<run>` artifact for 90 days.
-- Runtime JavaScript errors are kept locally until a customer signs in, then synced to the private `public.app_diagnostics` table.
-- Only the designated super-admin can read submitted runtime diagnostics. Logs redact common token and secret query parameters.
+- Runtime JavaScript errors stay on the device by default. A signed-in customer can explicitly opt in from **My Profile → Privacy & Support** before any diagnostics are uploaded.
+- Opted-in reports sync to the private `public.app_diagnostics` table; only the designated super-admin can read them. Customers can turn sharing off at any time; reports already uploaded remain in the support database.
+- Logs redact common token and secret query parameters. Error messages and stack traces may still contain technical details, so diagnostics are never uploaded without consent.
