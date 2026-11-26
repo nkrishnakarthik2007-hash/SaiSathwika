@@ -46,11 +46,19 @@ jobs:
         id: signing-check
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
+            echo "build_type=permanent-signed" >> "$GITHUB_OUTPUT"
+          elif [ -z "$ANDROID_KEYSTORE_BASE64" ] && [ -z "$ANDROID_KEYSTORE_PASSWORD" ] && [ -z "$ANDROID_KEY_ALIAS" ] && [ -z "$ANDROID_KEY_PASSWORD" ]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "build_type=debug-testing" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Android signing secrets are only partially configured. Add all four secrets or remove the incomplete set."
+            exit 1
           fi
       - name: Configure permanent Android signing
         if: steps.signing-check.outputs.enabled == 'true'
@@ -90,7 +98,7 @@ jobs:
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: sai-sathwika-android-debug
+          name: sai-sathwika-android-${{ steps.signing-check.outputs.build_type }}
           path: saisathwika.apk
       - name: Publish APK to GitHub Releases
         uses: softprops/action-gh-release@v2
@@ -98,8 +106,10 @@ jobs:
           tag_name: v0.1.${{ github.run_number }}
           name: Sai Sathwika v0.1.${{ github.run_number }}
           body: |
-            Android test APK (debug-signed) built from commit ${{ github.sha }}.
+            ${{ steps.signing-check.outputs.enabled == 'true' && 'Permanent-signature Android APK' || 'Debug-signed Android testing APK' }} built from commit ${{ github.sha }}.
 
-            Install saisathwika.apk on your Android device. This is a debug-signed testing build.
+            ${{ steps.signing-check.outputs.enabled == 'true' && 'This APK uses the configured permanent signing key and is suitable for in-place updates from installations signed with the same key.' || 'This is a temporary debug-signed testing build. Android may reject it as an update over an existing installation signed with a different key.' }}
+
+            Installable file: saisathwika.apk
           prerelease: true
           files: saisathwika.apk
