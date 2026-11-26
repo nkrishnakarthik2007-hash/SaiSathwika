@@ -129,7 +129,7 @@
   .header .brand small{font-size:7px;letter-spacing:.08em}
   .header .location,.desktop-store-nav{display:none}
   .header-actions{gap:7px;margin-left:auto}
-  .admin-shortcut{display:none}
+  .header-actions .admin-shortcut{display:flex;align-items:center;gap:5px;padding:8px 9px;border-radius:999px;background:#edf5e9;color:#31583a;font-size:10px;white-space:nowrap;flex-shrink:0}
   .profile-trigger{width:39px;height:39px;justify-content:center;border-radius:50%;padding:2px}
   .profile-trigger img,.profile-trigger>svg{width:33px;height:33px}
   .header .cart{padding:9px 11px;font-size:11px;gap:6px}
