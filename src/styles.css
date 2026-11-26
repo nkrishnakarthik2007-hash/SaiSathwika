@@ -364,3 +364,27 @@ footer{background:linear-gradient(110deg,#edf5e7,#f8f7ed)!important;border-top:1
 .admin-team-row button{border:1px solid #eadbd5;border-radius:8px;background:#fff8f5;color:#9b4936;padding:8px 11px;font-weight:700;cursor:pointer}
 .admin-warning-pill{display:inline-flex;align-items:center;border-radius:20px;background:#fff4dc;color:#9a6a1d;padding:5px 9px;font-size:10px;font-weight:700;text-transform:capitalize}
 @media(max-width:600px){.admin-team-row{align-items:flex-start;flex-wrap:wrap}.admin-team-row>div{flex-basis:100%}.admin-team-invite{padding:13px}.admin-navigation{overflow-x:auto;flex-wrap:nowrap}}
+
+/* Role-based delivery partner mode */
+.delivery-portal{min-height:100vh;background:#f7f6ef;color:#26372d;padding-bottom:40px}
+.delivery-header{height:76px;padding:0 max(22px,calc((100% - 1080px)/2));display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #e7eadf}
+.delivery-brand{display:flex;align-items:center;gap:12px}.delivery-brand>div{display:grid;gap:3px}.delivery-brand strong{font-size:17px}.delivery-brand small{font-size:9px;letter-spacing:1.5px;color:#64836c;font-weight:800}
+.delivery-mark{width:40px;height:40px;border-radius:14px;background:#e9f2e5;color:#47734e;display:grid;place-items:center;font-weight:900;font-size:22px}
+.delivery-header>button,.delivery-list-heading>button{border:1px solid #dce5d9;border-radius:12px;background:#fff;padding:10px 14px;color:#466b4b;font-weight:700}
+.delivery-welcome,.delivery-list{max-width:900px;margin:30px auto;padding:0 20px}
+.delivery-welcome{background:linear-gradient(120deg,#edf5e9,#fff8e9);border:1px solid #e1eadb;border-radius:24px;padding:28px}
+.delivery-welcome h1{font-size:clamp(25px,5vw,36px);margin:8px 0;color:#294c34}.delivery-welcome p{color:#6a796c;margin:0 0 18px}
+.delivery-live-state{display:flex;align-items:center;gap:9px;font-size:13px;color:#58705c;font-weight:700}
+.delivery-live-dot{width:9px;height:9px;border-radius:50%;background:#b7bdb4}.delivery-live-dot.on{background:#32a66a;box-shadow:0 0 0 4px #32a66a22}
+.delivery-list-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.delivery-list-heading h2{margin:5px 0;font-size:25px}.delivery-list-heading>button{display:flex;align-items:center;gap:7px}
+.delivery-order-card{background:#fff;border:1px solid #e6e9df;border-radius:20px;padding:20px;margin:14px 0;box-shadow:0 8px 25px #243b2b0a}
+.delivery-order-top,.delivery-order-footer{display:flex;justify-content:space-between;align-items:center;gap:12px}.delivery-order-top>div{display:grid;gap:4px}.delivery-order-top small{font-size:10px;letter-spacing:1px;color:#879187}.delivery-order-top strong{font-size:20px}
+.delivery-status{border-radius:30px;padding:7px 11px;background:#f5f0dd;color:#8a6d26;font-size:11px;font-weight:800;text-transform:capitalize}.delivery-status.out_for_delivery{background:#e4f4e9;color:#32774a}
+.delivery-customer{display:grid;gap:5px;padding:17px 0 12px}.delivery-customer strong{font-size:17px}.delivery-customer span,.delivery-items{font-size:13px;color:#6e786e;line-height:1.55}
+.delivery-items{display:flex;flex-wrap:wrap;gap:6px 14px;border-top:1px solid #eff0e9;border-bottom:1px solid #eff0e9;padding:12px 0}
+.delivery-order-footer{padding:13px 0}.delivery-order-footer strong{font-size:18px}.delivery-order-footer strong small{font-size:11px;color:#7d887e;font-weight:500;margin-left:5px}.delivery-order-footer>span{font-size:12px;color:#7b857b}
+.delivery-actions{display:flex;gap:9px;flex-wrap:wrap}.delivery-actions a,.delivery-actions button{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #dce5d9;background:#fff;color:#42694a;padding:11px 13px;border-radius:12px;text-decoration:none;font-size:13px;font-weight:750}.delivery-actions .delivery-primary{background:#47784e;color:#fff;border-color:#47784e;margin-left:auto}.delivery-actions button:disabled{opacity:.6}
+.delivery-empty{min-height:180px;border:1px dashed #d8e0d4;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#718071;background:#fff;text-align:center;padding:22px}.delivery-empty strong{color:#344d39}.delivery-empty span{font-size:13px}
+.delivery-message{padding:12px 14px;border-radius:12px;background:#fff3dc;color:#775b24;font-size:13px;margin:12px 0}
+.delivery-privacy-note{max-width:860px;margin:20px auto;padding:0 20px;color:#849084;font-size:12px;line-height:1.6}
+@media(max-width:600px){.delivery-header{height:66px;padding:0 16px}.delivery-welcome,.delivery-list{margin:18px auto;padding:0 14px}.delivery-welcome{padding:22px 18px}.delivery-order-card{padding:16px}.delivery-actions>*{flex:1}.delivery-actions .delivery-primary{margin-left:0}.delivery-list-heading h2{font-size:22px}}
