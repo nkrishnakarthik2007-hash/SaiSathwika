@@ -16,7 +16,7 @@ import MapPicker from './MapPicker';
 
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
-type CustomerPage = 'home' | 'shop' | 'orders' | 'profile';
+type CustomerPage = 'home' | 'shop' | 'orders' | 'profile' | 'login' | 'updates';
 type AppUpdate = { tagName: string; apkUrl: string; releaseNotes: string; versionCode: number; sha256: string };
 
 const categoryIcons = [Milk, Leaf, IceCream, Milk];
@@ -33,7 +33,9 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loginOpen, setLoginOpen] = useState(false);
+  const [installedAppVersion, setInstalledAppVersion] = useState('Checking…');
+  const [installedBuild, setInstalledBuild] = useState('');
+  const [updateStatus, setUpdateStatus] = useState('Not checked yet');
   const [loading, setLoading] = useState(true);
   const [storeAccepting,setStoreAccepting]=useState<boolean|null>(null);
   const [deliveryRadius,setDeliveryRadius]=useState(2);
@@ -79,11 +81,14 @@ export default function App() {
       const apk = latest?.assets?.find(asset => asset.name.toLowerCase() === 'saisathwika.apk');
       const latestVersionCode = Number(latest?.tag_name?.split('.').at(-1));
       const installedVersionCode = Number(installed.build ?? 0);
+      setInstalledAppVersion(installed.version || 'Unknown');
+      setInstalledBuild(String(installed.build ?? ''));
       if (!latest || !apk || !Number.isFinite(latestVersionCode)) throw new Error('The latest release does not contain a valid Android APK.');
       if (latestVersionCode > installedVersionCode) {
         setAppUpdate({ tagName: latest.tag_name, apkUrl: apk.browser_download_url, releaseNotes: latest.body ?? '', versionCode: latestVersionCode, sha256: apk.digest ?? '' });
+        setUpdateStatus('A new version is available: ' + latest.tag_name);
         setNotice('A new version (' + latest.tag_name + ') is available.');
-      } else { setAppUpdate(null); setNotice('You are using the latest Sai Sathwika version.'); }
+      } else { setAppUpdate(null); setUpdateStatus('You are using the latest version.'); setNotice('You are using the latest Sai Sathwika version.'); }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not check for updates.';
       recordAppDiagnostic('Update check failed: ' + message, error instanceof Error ? error.stack : null);
@@ -122,14 +127,13 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (Capacitor.getPlatform() !== 'android') return;
-    void checkForUpdates();
-    let listener: { remove: () => Promise<void> } | undefined;
-    void NativeApp.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) void checkForUpdates();
-    }).then(handle => { listener = handle; });
-    return () => { void listener?.remove(); };
+    if (Capacitor.getPlatform() !== 'android') { setInstalledAppVersion('Web version'); return; }
+    void NativeApp.getInfo().then(info => { setInstalledAppVersion(info.version || 'Unknown'); setInstalledBuild(String(info.build ?? '')); }).catch(() => setInstalledAppVersion('Unable to read version'));
   }, []);
+
+  useEffect(() => {
+    if (customerPage === 'updates' && Capacitor.getPlatform() === 'android') void checkForUpdates();
+  }, [customerPage]);
   useEffect(() => {
     let active = true;
     let firstFrame: number | undefined;
@@ -591,7 +595,7 @@ export default function App() {
   />;
 
   return <main>
-    <div className="announcement"><span>{storeAccepting===true?'We are accepting orders · Fresh dairy from your neighbourhood':storeAccepting===false?'Online ordering is not open yet · Browse our products':'Fresh dairy from your neighbourhood · Free delivery at launch'}</span><button className="update-check" onClick={appUpdate ? startAppUpdate : checkForUpdates} disabled={checkingUpdate || installingUpdate}>{checkingUpdate ? 'Checking…' : installingUpdate ? 'Downloading ' + updateProgress + '%' : appUpdate ? 'Download update · ' + appUpdate.tagName : 'Check for updates'}</button>{installingUpdate && <span className="update-progress-label" role="status">{updateProgress}% downloaded</span>}</div>
+    <div className="announcement"><span>{storeAccepting===true?'We are accepting orders · Fresh dairy from your neighbourhood':storeAccepting===false?'Online ordering is not open yet · Browse our products':'Fresh dairy from your neighbourhood · Free delivery at launch'}</span></div>
     <header className="header shell">
       <a className="brand" href="#" onClick={event => { event.preventDefault(); navigateCustomerPage('home'); }}><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></a>
       <div className="location"><MapPin size={17}/><span><small>DELIVERING TO</small><strong>{address.address_line ? address.address_line.split(',')[0] : 'Select your address'}</strong></span></div>
@@ -678,19 +682,32 @@ export default function App() {
           <button onClick={() => navigateCustomerPage('orders')}><PackageCheck size={17}/> View my orders <ChevronRight size={16}/></button>
           <button onClick={() => navigateCustomerPage('shop')}><Store size={17}/> Browse products <ChevronRight size={16}/></button>
           <button onClick={() => setCartOpen(true)}><ShoppingBag size={17}/> Open my cart <ChevronRight size={16}/></button>
+          <button onClick={() => navigateCustomerPage('updates')}><RefreshCw size={17}/> App updates & version <ChevronRight size={16}/></button>
         </section>
       </div>
     </section>}
 
-    <nav className="mobile-store-nav" aria-label="Mobile store navigation">
+    {customerPage === 'updates' && <section className="customer-page shell app-updates-page">
+      <button className="login-back-button" onClick={() => navigateCustomerPage('profile')}><ArrowLeft size={17}/> Back to profile</button>
+      <div className="customer-page-heading"><span className="eyebrow">APP SETTINGS</span><h1>App updates</h1><p>Check your installed version and get the latest Sai Sathwika improvements.</p></div>
+      <section className="profile-content-card app-version-card"><div className="app-version-icon"><ShieldCheck size={25}/></div><div><span className="eyebrow">CURRENT VERSION</span><h2>Version {installedAppVersion}</h2><p>{installedBuild ? 'Build number '+installedBuild : 'Installed application version'}</p></div></section>
+      <section className="profile-content-card app-update-check-card"><span className="eyebrow">UPDATE STATUS</span><h2>{appUpdate ? 'An update is ready' : checkingUpdate ? 'Checking for updates…' : 'Stay up to date'}</h2><p>{updateStatus}</p>
+        {appUpdate && <div className="app-release-notes"><strong>Latest release: {appUpdate.tagName}</strong>{appUpdate.releaseNotes && <p>{appUpdate.releaseNotes}</p>}</div>}
+        <button className="primary app-update-action" onClick={appUpdate ? startAppUpdate : checkForUpdates} disabled={checkingUpdate || installingUpdate || Capacitor.getPlatform() !== 'android'}>{checkingUpdate ? 'Checking…' : installingUpdate ? 'Downloading '+updateProgress+'%' : appUpdate ? 'Download and install update' : 'Check for updates'}</button>
+        {installingUpdate && <div className="app-update-progress"><span style={{width:updateProgress+'%'}}/></div>}
+        {Capacitor.getPlatform() !== 'android' && <small>In-app APK updates are available in the Android app.</small>}
+      </section>
+    </section>}
+
+    {!['login','updates'].includes(customerPage) && <nav className="mobile-store-nav" aria-label="Mobile store navigation">
       <button className={customerPage === 'home' ? 'active' : ''} onClick={() => navigateCustomerPage('home')}><Home size={19}/><span>Home</span></button>
       <button className={customerPage === 'shop' ? 'active' : ''} onClick={() => navigateCustomerPage('shop')}><Store size={19}/><span>Shop</span></button>
       <button className={customerPage === 'orders' ? 'active' : ''} onClick={() => navigateCustomerPage('orders')}><ClipboardList size={19}/><span>Orders</span></button>
       <button className={customerPage === 'profile' ? 'active' : ''} onClick={() => navigateCustomerPage('profile')}><UserRound size={19}/><span>Profile</span></button>
       <button onClick={() => setCartOpen(true)}><ShoppingBag size={19}/><span>Cart{cartCount ? ' · ' + cartCount : ''}</span></button>
-    </nav>
+    </nav>}
 
-    <footer><div className="shell footer-inner"><div className="brand footer-brand"><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></div><p>Freshness for your family, delivered with care.</p><div className="footer-creator"><strong>Made with love by Krishna Karthik</strong><span>Created in Andhra Pradesh, India</span><small>© {new Date().getFullYear()} Sai Sathwika</small></div></div></footer>
+    <footer><div className="shell footer-inner"><div className="brand footer-brand"><span className="brand-mark">S</span><span><strong>Sai Sathwika</strong><small>AUTHORISED HERITAGE OUTLET</small></span></div><p>Freshness for your family, delivered with care.</p><button className="footer-update-link" onClick={() => navigateCustomerPage('updates')}>App updates & current version</button><div className="footer-creator"><strong>Made with love by Krishna Karthik</strong><span>Created in Andhra Pradesh, India</span><small>© {new Date().getFullYear()} Sai Sathwika</small></div></div></footer>
 
     {cartOpen && <div className="modal-backdrop" onClick={()=>setCartOpen(false)}><section className="cart-modal" onClick={e=>e.stopPropagation()}>
       <div className="cart-modal-head"><div><span className="eyebrow">YOUR BASKET</span><h2>Shopping cart <small>({cartCount} items)</small></h2></div><button className="modal-close" onClick={()=>setCartOpen(false)}><X/></button></div>
@@ -715,7 +732,18 @@ export default function App() {
     </section></div>}
 
     {mapPickerOpen && coords && <MapPicker initial={coords} onClose={()=>setMapPickerOpen(false)} onConfirm={point=>{setCoords(point);setMapPickerOpen(false);setNotice('Delivery pin updated.');}}/>}
-    {loginOpen && <div className="modal-backdrop" onClick={() => setLoginOpen(false)}><section className="login-modal" onClick={e => e.stopPropagation()}><button className="modal-close" onClick={() => setLoginOpen(false)}><X size={19}/></button><div className="login-logo">S</div><span className="eyebrow">WELCOME TO SAI SATHWIKA</span><h2>Freshness is one tap away.</h2><p>Sign in securely with your Google account to save your address and orders.</p><button className="google-button" onClick={signIn}><span className="google-g">G</span> Continue with Google</button><small>Your account details are protected. We never ask for your Google password.</small></section></div>}
+    {customerPage === 'login' && <section className="dedicated-login-page">
+      <button className="login-back-button" onClick={() => navigateCustomerPage('home')}><ArrowLeft size={17}/> Back to shop</button>
+      <div className="dedicated-login-card">
+        <div className="login-logo">S</div>
+        <span className="eyebrow">WELCOME TO SAI SATHWIKA</span>
+        <h1>Freshness is one tap away.</h1>
+        <p>Sign in with Google to save your delivery address, keep your cart synced and follow your orders.</p>
+        <button className="google-button" onClick={signIn}><span className="google-g">G</span> Continue with Google</button>
+        <small>Secure Google sign-in. Sai Sathwika never sees or stores your Google password.</small>
+        <div className="login-benefits"><span><ShieldCheck size={16}/> Secure account</span><span><ShoppingBag size={16}/> Saved cart</span><span><MapPin size={16}/> Delivery details</span></div>
+      </div>
+    </section>}
 
     {notice && <div className="notice" role="status"><CheckCircle2 size={17}/>{notice}<button onClick={() => setNotice('')}><X size={16}/></button></div>}
   </main>;
