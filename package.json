@@ -20,7 +20,9 @@
     "@capacitor/core": "latest",
     "@supabase/supabase-js": "^2.86.0",
     "@capacitor/splash-screen": "latest",
-    "maplibre-gl": "^6.19.0"
+    "maplibre-gl": "^6.19.0",
+    "@capacitor/app": "latest",
+    "@capacitor/browser": "latest"
   },
   "devDependencies": {
     "@capacitor/cli": "latest",
