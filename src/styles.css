@@ -253,3 +253,7 @@ button.primary{font-family:'DM Sans';cursor:pointer}
  .admin-section-heading{align-items:flex-start}
 }
 @media(max-width:420px){.admin-overview-grid{grid-template-columns:1fr}.admin-overview-primary{grid-column:auto}.admin-stats article{padding:12px 10px}}
+
+.admin-top-actions{display:flex;align-items:center;gap:8px}
+.admin-signout{display:inline-flex;align-items:center;gap:7px;border:1px solid #f0dcd7;border-radius:9px;background:#fff8f6;color:#a64c41;padding:9px 11px;font:700 10px 'DM Sans';cursor:pointer}
+@media(max-width:760px){.admin-top-actions .admin-refresh-button{font-size:0;padding:9px}.admin-signout{font-size:0;padding:9px}.admin-top-actions svg{width:16px;height:16px}}
