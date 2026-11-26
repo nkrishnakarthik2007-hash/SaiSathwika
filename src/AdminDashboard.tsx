@@ -308,7 +308,13 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   async function addProduct(e:React.FormEvent){
     e.preventDefault();if(!supabase)return;
     setBusy(true);setMessage('');
+    let uploadedPath:string|null=null;
     try{
+      const priceValue=Number(price),stockValue=Number(stock),mrpValue=mrp===''?null:Number(mrp);
+      if(!name.trim())throw new Error('Product name is required.');
+      if(!Number.isFinite(priceValue)||priceValue<=0)throw new Error('Enter a valid selling price greater than ₹0.');
+      if(!Number.isInteger(stockValue)||stockValue<0)throw new Error('Stock quantity must be a whole number of 0 or more.');
+      if(mrpValue!==null&&(!Number.isFinite(mrpValue)||mrpValue<priceValue))throw new Error('MRP must be valid and cannot be lower than the selling price.');
       let image_urls:string[]=[];
       if(image){
         if(image.size>15*1024*1024)throw new Error('Choose a product image smaller than 15 MB.');
@@ -316,13 +322,10 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
         const path=`${crypto.randomUUID()}-${optimized.name}`;
         const {error:uploadError}=await supabase.storage.from('product-images').upload(path,optimized,{upsert:false,contentType:'image/webp',cacheControl:'31536000'});
         if(uploadError)throw uploadError;
+        uploadedPath=path;
         const {data}=supabase.storage.from('product-images').getPublicUrl(path);
         image_urls=[data.publicUrl];
       }
-      const priceValue=Number(price),stockValue=Number(stock),mrpValue=mrp===''?null:Number(mrp);
-      if(!Number.isFinite(priceValue)||priceValue<=0)throw new Error('Enter a valid selling price greater than ₹0.');
-      if(!Number.isInteger(stockValue)||stockValue<0)throw new Error('Stock quantity must be a whole number of 0 or more.');
-      if(mrpValue!==null&&(!Number.isFinite(mrpValue)||mrpValue<priceValue))throw new Error('MRP must be valid and cannot be lower than the selling price.');
       const {error}=await supabase.from('products').insert({
         name:name.trim(),brand_id:brand||null,category_id:category||null,
         price:priceValue,mrp:mrpValue,stock_quantity:stockValue,
@@ -330,11 +333,14 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
         image_urls,is_available:true
       });
       if(error)throw error;
+      uploadedPath=null;
       setMessage('Product saved successfully');
       setName('');setPrice('');setMrp('');setStock('0');setVariant('');setUnit('');setDescription('');setImage(null);
       void refresh();
-    }catch(err){setMessage(err instanceof Error?err.message:'Unable to save product');}
-    finally{setBusy(false);}
+    }catch(err){
+      if(uploadedPath)await supabase.storage.from('product-images').remove([uploadedPath]);
+      setMessage(err instanceof Error?err.message:'Unable to save product');
+    }finally{setBusy(false);}
   }
   async function addPromotion(){
     if(!supabase||!promotionName.trim())return;
