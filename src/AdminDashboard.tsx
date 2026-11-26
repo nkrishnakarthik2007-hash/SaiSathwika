@@ -306,7 +306,7 @@ export default function AdminDashboard({ onBack, onSignOut }: { onBack: () => vo
       <nav className="admin-navigation" aria-label="Admin sections">{adminTabs.map(tab=>{const Icon=tab.icon;return <button key={tab.id} className={activeTab===tab.id?'active':''} onClick={()=>setActiveTab(tab.id)}><Icon size={16}/><span>{tab.label}</span></button>;})}</nav>
       <div className="admin-stats"><article><PackagePlus/><strong>{products.length}</strong><span>Products</span></article><article><ShoppingBag/><strong>{pendingOrders}</strong><span>Open orders</span></article><article><Users/><strong>{customers.length||'—'}</strong><span>Customers</span></article><article><TrendingUp/><strong>₹{recentValue.toFixed(0)}</strong><span>Recent order value</span></article></div>
       {message&&<div className="admin-message">{message}</div>}
-      {activeTab==='overview'&&<section className="admin-overview-grid">
+      {activeTab==='overview'&&<><section className="admin-overview-grid">
   <article className="admin-overview-card admin-overview-primary"><span className="eyebrow">STORE OPERATIONS</span><h2>Your store at a glance</h2><p>Manage the catalogue, keep stock accurate and move orders through delivery from one control centre.</p><div className="admin-overview-actions"><button onClick={()=>setActiveTab('products')}><PackagePlus size={16}/> Manage products</button><button onClick={()=>setActiveTab('orders')}><ClipboardList size={16}/> View orders</button></div></article>
   <article className="admin-overview-card"><span className="eyebrow">RECENT ORDER VALUE</span><strong>₹{recentValue.toFixed(2)}</strong><small>Across the latest {orders.length} orders loaded</small></article>
   <article className="admin-overview-card"><span className="eyebrow">TO BE PROCESSED</span><strong>{pendingOrders}</strong><small>Orders not yet delivered or cancelled</small></article>
@@ -315,7 +315,7 @@ export default function AdminDashboard({ onBack, onSignOut }: { onBack: () => vo
 <section className="admin-card inventory">
   <div className="admin-section-heading"><div><h2><ClipboardList/> Latest orders</h2><p>Recent orders from your customer app and laptop storefront.</p></div><button className="admin-refresh-button" onClick={()=>setActiveTab('orders')}>All orders <ChevronRight size={14}/></button></div>
   {ordersBusy?<p className="admin-hint">Loading recent orders…</p>:orders.length===0?<p className="admin-hint">No customer orders yet. New orders will appear here.</p>:orders.slice(0,5).map(o=><article className="admin-order-row" key={o.id}><div className="admin-order-main"><strong>Order #{o.order_number}</strong><small>{o.profiles?.full_name??o.delivery_address_snapshot?.recipient_name??'Customer'} · {new Date(o.created_at).toLocaleString()}</small><small>{(o.order_items??[]).map((i:any)=>i.product_name_snapshot+' × '+i.quantity).join(', ')}</small></div><div className="admin-order-actions"><b>₹{Number(o.total).toFixed(2)}</b><span className="admin-order-status-text">{String(o.status).replaceAll('_',' ')}</span></div></article>)}
-</section>}
+</section></>}
       {activeTab==='products'&&<>{      <div className="admin-columns">
         <section className="admin-card"><h2><PackagePlus/> Add a product</h2><form onSubmit={addProduct} className="admin-form">
           <label>Product name<input required value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Heritage Toned Milk"/></label>
