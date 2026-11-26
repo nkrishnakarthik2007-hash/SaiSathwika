@@ -26,13 +26,40 @@ await writeFile(javaRoot + '/AppUpdaterPlugin.java', pluginTemplate.replaceAll('
 await writeFile(javaRoot + '/UpdateInstallReceiver.java', receiverTemplate.replaceAll('__APP_PACKAGE__', packageName), 'utf8');
 
 const activitySource = 'package ' + packageName + ';\n\n' +
+  'import android.graphics.Color;\n' +
+  'import android.os.Build;\n' +
   'import android.os.Bundle;\n' +
+  'import android.view.View;\n' +
+  'import android.view.WindowInsets;\n' +
+  'import android.view.WindowInsetsController;\n' +
+  'import android.webkit.WebSettings;\n' +
   'import com.getcapacitor.BridgeActivity;\n\n' +
   'public class MainActivity extends BridgeActivity {\n' +
   '    @Override\n' +
   '    public void onCreate(Bundle savedInstanceState) {\n' +
   '        registerPlugin(AppUpdaterPlugin.class);\n' +
   '        super.onCreate(savedInstanceState);\n' +
+  '        getWindow().setStatusBarColor(Color.TRANSPARENT);\n' +
+  '        applyStatusBarMode();\n' +
+  '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && getBridge() != null && getBridge().getWebView() != null) {\n' +
+  '            getBridge().getWebView().getSettings().setForceDark(WebSettings.FORCE_DARK_OFF);\n' +
+  '        }\n' +
+  '    }\n' +
+  '    private void applyStatusBarMode() {\n' +
+  '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {\n' +
+  '            WindowInsetsController controller = getWindow().getInsetsController();\n' +
+  '            if (controller != null) {\n' +
+  '                controller.hide(WindowInsets.Type.statusBars());\n' +
+  '                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);\n' +
+  '            }\n' +
+  '        } else {\n' +
+  '            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);\n' +
+  '        }\n' +
+  '    }\n' +
+  '    @Override\n' +
+  '    public void onWindowFocusChanged(boolean hasFocus) {\n' +
+  '        super.onWindowFocusChanged(hasFocus);\n' +
+  '        if (hasFocus) applyStatusBarMode();\n' +
   '    }\n' +
   '}\n';
 await writeFile(mainActivityPath, activitySource, 'utf8');
