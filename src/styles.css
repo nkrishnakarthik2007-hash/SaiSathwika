@@ -452,3 +452,6 @@ footer{background:linear-gradient(110deg,#edf5e7,#f8f7ed)!important;border-top:1
 
 /* Clear payment collection status on delivery cards */
 .delivery-amount{display:grid;gap:7px}.delivery-payment{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.delivery-payment>span{display:inline-flex;align-items:center;border-radius:30px;padding:5px 9px;font-size:10px;font-weight:800}.delivery-payment.paid>span{background:#e6f5e9;color:#287345}.delivery-payment.pending>span{background:#fff1d9;color:#8a5b17}.delivery-payment small{font-size:11px;color:#7d887e;font-weight:500}
+
+/* Customer order history refresh and live status */
+.customer-orders-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}.customer-orders-refresh{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;border:1px solid #dce8d8;border-radius:12px;background:#fff;color:#28663a;padding:11px 14px;font:700 12px 'DM Sans';cursor:pointer}.customer-orders-refresh:disabled{opacity:.65;cursor:wait}.customer-orders-refresh .spin{animation:customer-order-spin 1s linear infinite}@keyframes customer-order-spin{to{transform:rotate(360deg)}}@media(max-width:600px){.customer-orders-heading{align-items:flex-start;flex-direction:column}.customer-orders-refresh{width:100%}}

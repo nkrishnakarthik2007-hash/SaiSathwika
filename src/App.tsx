@@ -459,6 +459,24 @@ export default function App() {
     }
   }
 
+  useEffect(() => {
+    const client = supabase;
+    const userId = session?.user.id;
+    if (!client || !userId || customerPage !== 'orders') return;
+    let active = true;
+    const refreshOrderStatus = async () => {
+      const { data, error } = await client
+        .from('orders')
+        .select('id,order_number,status,total,payment_method,payment_status,created_at,delivery_address_snapshot,order_items(product_name_snapshot,quantity,line_total)')
+        .eq('customer_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (active && !error) setCustomerOrders(data ?? []);
+    };
+    const timer = window.setInterval(() => { void refreshOrderStatus(); }, 20000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [customerPage, session?.user.id]);
+
   async function loadCustomerAddresses() {
     if (!supabase || !session) return;
     setProfileLoading(true);
@@ -656,7 +674,7 @@ export default function App() {
     </section>}
 
     {customerPage === 'orders' && <section className="customer-page shell">
-      <div className="customer-page-heading"><span className="eyebrow">YOUR SAI SATHWIKA ACCOUNT</span><h1>My orders</h1><p>Follow your delivery and see everything you've ordered.</p></div>
+      <div className="customer-page-heading customer-orders-heading"><div><span className="eyebrow">YOUR SAI SATHWIKA ACCOUNT</span><h1>My orders</h1><p>Follow your delivery and see everything you've ordered.</p></div><button className="customer-orders-refresh" type="button" onClick={() => void loadOrders()} disabled={ordersLoading}><RefreshCw size={16} className={ordersLoading?'spin':''}/>{ordersLoading?'Refreshing…':'Refresh status'}</button></div>
       {ordersLoading ? <div className="customer-empty-state"><div className="loading-orbit"/><strong>Loading your orders…</strong></div>
         : customerOrders.length === 0 ? <div className="customer-empty-state"><div className="customer-empty-icon"><PackageCheck size={28}/></div><h2>No orders yet</h2><p>Your orders will appear here after you place your first order.</p><button className="primary" onClick={() => navigateCustomerPage('shop')}>Start shopping <ArrowRight size={16}/></button></div>
         : <div className="customer-orders-grid">{customerOrders.map(order => <article className="customer-order-card" key={order.id}>
