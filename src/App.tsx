@@ -493,7 +493,7 @@ export default function App() {
     const isAndroid = Capacitor.getPlatform() === 'android';
     const redirectTo = isAndroid
       ? 'in.saisathwika.shop://login-callback'
-      : window.location.origin;
+      : new URL(import.meta.env.BASE_URL, window.location.href).href;
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
