@@ -138,6 +138,7 @@ export default function App() {
 
     const revealRenderedApp = () => {
       if (!active) return;
+      document.body.dataset.appReady = 'true';
       bootScreen?.classList.add('app-boot-screen-hidden');
       removeTimer = window.setTimeout(() => bootScreen?.remove(), 420);
     };
