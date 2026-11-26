@@ -688,7 +688,7 @@ export default function App() {
     </section>}
 
     {customerPage === 'updates' && <section className="customer-page shell app-updates-page">
-      <button className="login-back-button" onClick={() => navigateCustomerPage('profile')}><ArrowLeft size={17}/> Back to profile</button>
+      <button className="login-back-button" onClick={() => navigateCustomerPage(session ? 'profile' : 'home')}><ArrowLeft size={17}/> Back</button>
       <div className="customer-page-heading"><span className="eyebrow">APP SETTINGS</span><h1>App updates</h1><p>Check your installed version and get the latest Sai Sathwika improvements.</p></div>
       <section className="profile-content-card app-version-card"><div className="app-version-icon"><ShieldCheck size={25}/></div><div><span className="eyebrow">CURRENT VERSION</span><h2>Version {installedAppVersion}</h2><p>{installedBuild ? 'Build number '+installedBuild : 'Installed application version'}</p></div></section>
       <section className="profile-content-card app-update-check-card"><span className="eyebrow">UPDATE STATUS</span><h2>{appUpdate ? 'An update is ready' : checkingUpdate ? 'Checking for updates…' : 'Stay up to date'}</h2><p>{updateStatus}</p>
