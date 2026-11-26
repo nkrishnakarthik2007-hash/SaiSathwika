@@ -135,7 +135,7 @@ export default function AdminDashboard({ onBack, onSignOut }: { onBack: () => vo
       .on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>void refreshOrders())
       .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>void refresh())
       .on('postgres_changes',{event:'*',schema:'public',table:'profiles'},()=>void refreshCustomers())
-      .on('postgres_changes',{event:'*',schema:'public',table:'promotions'},()=>{if(activeTab==='promotions')void refreshPromotions();})
+      .on('postgres_changes',{event:'*',schema:'public',table:'promotions'},()=>void refreshPromotions())
       .subscribe();
     return ()=>{if(channel)void supabase?.removeChannel(channel);};
   },[]);
