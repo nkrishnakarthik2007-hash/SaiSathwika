@@ -45,6 +45,8 @@ jobs:
         run: npm run build
       - name: Add Android platform
         run: npx cap add android
+      - name: Configure Android OAuth deep link
+        run: node scripts/configure-android-deeplink.mjs
       - name: Generate branded app icons and splash assets
         run: |
           node scripts/generate-brand-assets.mjs
