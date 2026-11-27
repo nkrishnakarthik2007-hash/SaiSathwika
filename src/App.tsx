@@ -12,7 +12,6 @@ import { flushAppDiagnostics, installAppDiagnostics, recordAppDiagnostic } from 
 installAppDiagnostics();
 import AdminDashboard from './AdminDashboard';
 import DeliveryDashboard from './DeliveryDashboard';
-import MapPicker from './MapPicker';
 
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
@@ -56,15 +55,16 @@ export default function App() {
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [address, setAddress] = useState({recipient_name:'',phone:'',address_line:'',landmark:''});
   const [coords, setCoords] = useState<{latitude:number;longitude:number}|null>(null);
-  const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
   const [cartCloudUserId, setCartCloudUserId] = useState<string | null>(null);
   const cartSyncQueue = useRef<Promise<void>>(Promise.resolve());
+  const locationPromptedUser = useRef<string | null>(null);
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [orderStatusEvents, setOrderStatusEvents] = useState<Record<string,any[]>>({});
   const [deliveryOtps, setDeliveryOtps] = useState<Record<string,string>>({});
   const [deliveryOtpBusy, setDeliveryOtpBusy] = useState<string|null>(null);
   const [customerAddresses, setCustomerAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [customerNote, setCustomerNote] = useState('');
@@ -529,7 +529,7 @@ export default function App() {
     try {
       const { data, error } = await supabase
         .from('customer_addresses')
-        .select('id,label,recipient_name,phone,address_line,landmark,is_default')
+        .select('id,label,recipient_name,phone,address_line,landmark,latitude,longitude,is_default')
         .eq('customer_id', session.user.id)
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: false });
