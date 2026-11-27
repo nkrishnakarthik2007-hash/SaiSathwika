@@ -161,7 +161,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   }
   async function refreshPromotions(){
     if(!supabase)return;
-    const {data,error}=await supabase.from('promotions').select('id,name,description,promotion_type,rules,is_active,starts_at,ends_at,created_at').order('created_at',{ascending:false});
+    const {data,error}=await supabase.from('promotions').select('id,name,description,promotion_type,rules,is_active,starts_at,ends_at,created_at,coupon_code,minimum_order_value,maximum_discount,usage_limit,usage_count').order('created_at',{ascending:false});
     if(error)setMessage('Promotions: '+error.message);else setPromotions(data??[]);
   }
   async function refreshInvitations(){
