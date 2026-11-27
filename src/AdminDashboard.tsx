@@ -493,7 +493,6 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   const todayOrders=orders.filter(o=>new Date(o.created_at).toLocaleDateString('en-CA')===todayKey);
   const todayRevenue=todayOrders.filter(o=>o.status!=='cancelled').reduce((sum,o)=>sum+Number(o.total??0),0);
   const lowStockProducts=products.filter(p=>Number(p.stock_quantity)<=5);
-  const readyOrders=ordersForDisplay.filter(o=>o.status==='ready_for_dispatch');
   const ordersForDisplay=[...orders].sort((a,b)=>{
     const aReady=a.status==='ready_for_dispatch';
     const bReady=b.status==='ready_for_dispatch';
@@ -505,6 +504,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     }
     return new Date(b.created_at).getTime()-new Date(a.created_at).getTime();
   });
+  const readyOrders=ordersForDisplay.filter(o=>o.status==='ready_for_dispatch');
 
   return <main className="admin-page">
     <header className="admin-top"><button className="admin-storefront-back" onClick={onBack}><ArrowLeft size={17}/> Storefront</button><div className="admin-brand-lockup"><span className="admin-brand-mark">SS</span><span><strong>Sai Sathwika</strong><small>STORE MANAGEMENT</small></span></div><div className="admin-top-actions"><button className="admin-refresh-button" type="button" aria-label="Refresh dashboard" onClick={()=>{void refresh();void refreshOrders();}}><RefreshCw size={15}/><span>Refresh</span></button><button className="admin-notification-button" type="button" aria-label={`${pendingOrders} open orders`} onClick={()=>setActiveTab('orders')}><Bell size={17}/>{pendingOrders>0&&<i>{pendingOrders>9?'9+':pendingOrders}</i>}</button><button className="admin-signout" type="button" onClick={onSignOut}><LogOut size={15}/><span>Sign out</span></button></div></header>
