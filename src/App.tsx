@@ -864,7 +864,7 @@ export default function App() {
           <input type="checkbox" checked={diagnosticsConsent} onChange={event => updateDiagnosticsConsent(event.target.checked)} />
           <span><strong>Allow diagnostic sharing</strong><small>{diagnosticsConsent ? 'Enabled — recent reports may sync when you are online.' : 'Disabled — reports remain on this device.'}</small></span>
         </label>
-        <small className="profile-muted">You can change this setting anytime. Turning it off stops future uploads; reports already sent remain in the support database.</small>
+        <small className="profile-muted">You can change this setting anytime. Turning it off stops future uploads; an upload already in progress may finish. Reports already sent remain in the support database.</small>
       </section>
     </section>}
 
