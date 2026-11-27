@@ -483,7 +483,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     </div>
     <label>Ends at<input type="datetime-local" value={promotionEnds} onChange={e=>setPromotionEnds(e.target.value)}/></label>
     <div className="admin-two">
-      <label>Offer type<select value={promotionType} onChange={e=>setPromotionType(e.target.value)}><option value="percentage">Percentage discount</option><option value="fixed_amount">Fixed amount off</option><option value="free_delivery">Free delivery</option><option value="bundle">Bundle offer</option></select></label>
+      <label>Offer type<select value={promotionType} onChange={e=>setPromotionType(e.target.value)}><option value="percentage">Percentage discount</option><option value="fixed_amount">Fixed amount off</option></select></label>
       <label>{promotionType==='percentage'?'Discount (%)':promotionType==='fixed_amount'?'Discount (₹)':'Offer value'}<input type="number" min="1" step="0.01" value={promotionRules} onChange={e=>setPromotionRules(e.target.value)} disabled={promotionType==='free_delivery'||promotionType==='bundle'}/></label>
     </div>
     <button className="admin-submit" disabled={promotionBusy}><Save size={16}/>{promotionBusy?'Creating…':'Create promotion'}</button>
