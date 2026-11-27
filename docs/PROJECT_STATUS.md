@@ -4,7 +4,7 @@ Last reviewed: 2026-11-27
 
 ## Live Supabase snapshot
 
-- Project: sai-sathwika-commerce; status ACTIVE_HEALTHY; region ap-south-1.
+- Supabase project status: ACTIVE_HEALTHY. Region and project display name were not revalidated in this review.
 - Products: 0; active categories: 7; active brands: 3.
 - Orders: 0; cart rows: 0; customer addresses: 0; profiles: 1.
 - Diagnostics table: 25 rows. The contents were not inspected.
