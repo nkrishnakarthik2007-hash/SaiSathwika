@@ -37,7 +37,7 @@ Last reviewed: 2026-11-27
 
 ## Exact next steps
 
-1. Draft PR #5 validation passed on 2026-11-27: dependency installation and TypeScript/Vite build succeeded. Physical Android testing remains pending.
+1. Draft PR #5 validation run #6 passed on 2026-11-27 before the final wording-only privacy-copy update. No later run was visible for the final head during this review. Physical Android testing remains pending.
 2. Authorize Vercel team access and verify the actual storefront deployment/domain.
 3. Add real product photos, variants, prices and stock.
 4. Test Google OAuth, Android callback, cart persistence, delivery checks and COD checkout with controlled test data.
