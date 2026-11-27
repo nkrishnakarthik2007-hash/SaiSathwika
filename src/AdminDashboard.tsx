@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X, LayoutDashboard, Users, Percent, Activity, ShoppingBag, RefreshCw, TrendingUp, Truck, LogOut, ChevronRight, UserPlus, Mail, BookOpen, Search } from 'lucide-react';
+import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X, LayoutDashboard, Users, Percent, Activity, ShoppingBag, RefreshCw, TrendingUp, Truck, LogOut, ChevronRight, UserPlus, Mail, BookOpen, Search, Navigation } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import HeritageMrpCatalog from './HeritageMrpCatalog';
 
@@ -16,6 +16,28 @@ const adminTabs: { id: AdminTab; label: string; icon: any }[] = [
   { id: 'diagnostics', label: 'Live health', icon: Activity },
   { id: 'team', label: 'Team access', icon: UserPlus },
 ];
+
+function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const radians = (degrees: number) => degrees * Math.PI / 180;
+  const dLat = radians(lat2 - lat1);
+  const dLon = radians(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function getOrderDistanceKm(order: any, storeLat: string, storeLng: string): number | null {
+  const destination = order.delivery_address_snapshot ?? {};
+  if (storeLat.trim() === '' || storeLng.trim() === '' || destination.latitude == null || destination.longitude == null) return null;
+  const originLatitude = Number(storeLat);
+  const originLongitude = Number(storeLng);
+  const latitude = Number(destination.latitude);
+  const longitude = Number(destination.longitude);
+  if (![originLatitude, originLongitude, latitude, longitude].every(Number.isFinite)
+    || Math.abs(originLatitude) > 90 || Math.abs(latitude) > 90
+    || Math.abs(originLongitude) > 180 || Math.abs(longitude) > 180) return null;
+  return calculateDistanceKm(originLatitude, originLongitude, latitude, longitude);
+}
 
 const orderStatusTransitions: Record<string, string[]> = {
   placed: ['confirmed', 'cancelled'],
