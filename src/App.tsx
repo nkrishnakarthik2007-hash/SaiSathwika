@@ -565,6 +565,9 @@ export default function App() {
     setCustomerPage('home');
     localStorage.removeItem('sai-sathwika-admin-view');
     setCustomerAddresses([]);
+    setSelectedAddressId('');
+    setAddress({recipient_name:'',phone:'',address_line:'',landmark:''});
+    setCoords(null);
     setCustomerOrders([]);
     setCartCloudUserId(null);
     setCart({});
