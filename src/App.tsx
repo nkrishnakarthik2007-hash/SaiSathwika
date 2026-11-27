@@ -876,7 +876,6 @@ export default function App() {
       </>}
     </section></div>}
 
-    {mapPickerOpen && coords && <MapPicker initial={coords} onClose={()=>setMapPickerOpen(false)} onConfirm={point=>{setCoords(point);setMapPickerOpen(false);setNotice('Delivery pin updated.');}}/>}
     {customerPage === 'login' && <section className="dedicated-login-page">
       <button className="login-back-button" onClick={() => navigateCustomerPage('home')}><ArrowLeft size={17}/> Back to shop</button>
       <div className="dedicated-login-card">
