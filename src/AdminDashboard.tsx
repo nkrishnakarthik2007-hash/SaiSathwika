@@ -173,6 +173,18 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     if(assignmentError)setMessage('Delivery assignments: '+assignmentError.message);
     setOrdersBusy(false);
   }
+  function openOrderInMaps(order: any) {
+    const destination = order.delivery_address_snapshot ?? {};
+    if (typeof destination.latitude !== 'number' || typeof destination.longitude !== 'number') {
+      setMessage('This order does not have saved GPS coordinates. Ask the customer to update the delivery location.');
+      return;
+    }
+    const url = 'https://www.google.com/maps/dir/?api=1&destination='
+      + encodeURIComponent(destination.latitude + ',' + destination.longitude)
+      + '&travelmode=driving';
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
   async function markCodCollected(orderId:string){
     if(!supabase)return;
     if(!window.confirm('Confirm that the delivery person has physically collected the full cash amount for this order?'))return;
@@ -474,6 +486,17 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   const visibleCustomers=customers.filter(c=>(c.full_name??'').toLowerCase().includes(customerSearch.toLowerCase())||(c.phone??'').includes(customerSearch)||(c.role??'').toLowerCase().includes(customerSearch.toLowerCase()));
   const recentValue=orders.reduce((sum,o)=>sum+Number(o.total??0),0);
   const pendingOrders=orders.filter(o=>!['delivered','cancelled'].includes(o.status)).length;
+  const ordersForDisplay=[...orders].sort((a,b)=>{
+    const aReady=a.status==='ready_for_dispatch';
+    const bReady=b.status==='ready_for_dispatch';
+    if(aReady!==bReady)return aReady?-1:1;
+    if(aReady&&bReady){
+      const aDistance=getOrderDistanceKm(a,storeLat,storeLng)??Number.POSITIVE_INFINITY;
+      const bDistance=getOrderDistanceKm(b,storeLat,storeLng)??Number.POSITIVE_INFINITY;
+      if(aDistance!==bDistance)return aDistance-bDistance;
+    }
+    return new Date(b.created_at).getTime()-new Date(a.created_at).getTime();
+  });
 
   return <main className="admin-page">
     <header className="admin-top"><button onClick={onBack}><ArrowLeft size={17}/> Storefront</button><div><ShieldCheck size={19}/> Sai Sathwika · Admin</div><div className="admin-top-actions"><button className="admin-refresh-button" type="button" onClick={()=>{void refresh();void refreshOrders();}}><RefreshCw size={15}/> Refresh</button><button className="admin-signout" type="button" onClick={onSignOut}><LogOut size={15}/> Sign out</button></div></header>
