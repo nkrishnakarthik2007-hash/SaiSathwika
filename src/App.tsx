@@ -61,6 +61,8 @@ export default function App() {
   const [cartCloudUserId, setCartCloudUserId] = useState<string | null>(null);
   const cartSyncQueue = useRef<Promise<void>>(Promise.resolve());
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
+  const [deliveryOtps, setDeliveryOtps] = useState<Record<string,string>>({});
+  const [deliveryOtpBusy, setDeliveryOtpBusy] = useState<string|null>(null);
   const [customerAddresses, setCustomerAddresses] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -72,6 +74,15 @@ export default function App() {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [installingUpdate, setInstallingUpdate] = useState(false);
   const [updateProgress, setUpdateProgress] = useState(0);
+
+  async function generateDeliveryOtp(orderId: string) {
+    if (!supabase) return;
+    setDeliveryOtpBusy(orderId);
+    const { data, error } = await supabase.rpc('customer_get_delivery_otp', { p_order_id: orderId });
+    if (error) setNotice(error.message);
+    else setDeliveryOtps(current => ({ ...current, [orderId]: String(data) }));
+    setDeliveryOtpBusy(null);
+  }
 
   async function checkForUpdates() {
     if (Capacitor.getPlatform() !== 'android') { setNotice('App updates are available from the Android app only.'); return; }
@@ -725,6 +736,7 @@ export default function App() {
             <div className="customer-order-top"><div><small>ORDER NUMBER</small><strong>#{order.order_number}</strong></div><span className={'customer-order-status ' + order.status}>{String(order.status).replaceAll('_',' ')}</span><small className="customer-payment-status">Payment: {(order.payment_method??'cash_on_delivery').replaceAll('_',' ')} · {(order.payment_status??'pending').replaceAll('_',' ')}</small></div>
             <div className="customer-order-items">{(order.order_items ?? []).map((item:any) => <div key={item.product_name_snapshot}><span>{item.product_name_snapshot} × {item.quantity}</span><strong>₹{Number(item.line_total ?? 0).toFixed(2)}</strong></div>)}</div>
             {order.delivery_address_snapshot?.address_line && <p className="customer-order-address"><MapPin size={14}/>{order.delivery_address_snapshot.address_line}</p>}
+            {order.status === 'out_for_delivery' && <div className="customer-delivery-otp"><div><strong>Delivery confirmation OTP</strong><small>Share this code with the delivery partner only when your order arrives. It expires in 10 minutes.</small></div>{deliveryOtps[order.id] ? <strong className="customer-otp-code">{deliveryOtps[order.id]}</strong> : <button type="button" disabled={deliveryOtpBusy===order.id} onClick={() => void generateDeliveryOtp(order.id)}>{deliveryOtpBusy===order.id?'Generating…':'Show delivery OTP'}</button>}</div>}
             <div className="customer-order-bottom"><small>{new Date(order.created_at).toLocaleString()}</small><strong>₹{Number(order.total).toFixed(2)}</strong></div>
           </article>)}</div>}
     </section>}

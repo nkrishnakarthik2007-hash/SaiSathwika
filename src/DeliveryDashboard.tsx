@@ -102,7 +102,7 @@ export default function DeliveryDashboard({ onSignOut }: { onSignOut: () => void
             <div className="delivery-actions">
               {phone && <a href={'tel:'+phone}><Phone size={16}/> Call customer</a>}
               <button type="button" onClick={() => openNavigation(order)}><Navigation size={16}/> Navigate</button>
-              {order.status === 'preparing' && <button className="delivery-primary" type="button" disabled={busyOrder===order.id} onClick={() => void runAction(order,'start_assigned_delivery')}>{busyOrder===order.id?'Starting…':'Start delivery'}</button>}
+              {order.status === 'ready_for_dispatch' && <button className="delivery-primary" type="button" disabled={busyOrder===order.id} onClick={() => void runAction(order,'start_assigned_delivery')}>{busyOrder===order.id?'Starting…':'Start delivery'}</button>}
               {order.status === 'out_for_delivery' && <div className="delivery-otp-verify"><label htmlFor={'delivery-otp-'+order.id}>Customer delivery OTP</label><input id={'delivery-otp-'+order.id} inputMode="numeric" maxLength={6} placeholder="6-digit code" value={otpByOrder[order.id] ?? ''} onChange={event => setOtpByOrder(current => ({...current,[order.id]:event.target.value.replace(/\D/g,'').slice(0,6)}))}/><button className="delivery-primary" type="button" disabled={busyOrder===order.id} onClick={() => void verifyOtp(order)}><CheckCircle2 size={16}/>{busyOrder===order.id?'Verifying…':'Verify & deliver'}</button></div>}
             </div>
           </article>;
