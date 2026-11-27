@@ -683,6 +683,7 @@ export default function App() {
       const {data,error}=await supabase.rpc('place_order',{p_items:items,p_address_id:addressId,p_customer_note:customerNote.trim()||null,p_coupon_code:validCoupon?.code??null});
       if(error) throw error;
       const result=Array.isArray(data)?data[0]:data;
+      setSelectedAddressId(addressId);
       setCart({}); setCartOpen(false); setCustomerNote(''); setCouponCode(''); setAppliedCoupon(null);
       setNotice(result?.order_number ? `Order #${result.order_number} placed successfully!` : 'Your order was placed successfully!');
       await loadOrders();
