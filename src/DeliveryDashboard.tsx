@@ -60,9 +60,14 @@ export default function DeliveryDashboard({ onSignOut }: { onSignOut: () => void
     const otp = (otpByOrder[order.id] ?? '').trim();
     if (!/^\d{6}$/.test(otp)) { setMessage('Enter the six-digit OTP shown in the customer order screen.'); return; }
     setBusyOrder(order.id); setMessage('');
-    const { error } = await supabase.rpc('verify_delivery_otp', { p_order_id: order.id, p_otp: otp });
+    const { data, error } = await supabase.rpc('verify_delivery_otp', { p_order_id: order.id, p_otp: otp });
     if (error) setMessage(error.message);
-    else { setMessage('OTP verified. Order marked as delivered.'); setOtpByOrder(current => ({ ...current, [order.id]: '' })); }
+    else if (data?.success === true) {
+      setMessage('OTP verified. Order marked as delivered.');
+      setOtpByOrder(current => ({ ...current, [order.id]: '' }));
+    } else {
+      setMessage(data?.message ?? 'OTP could not be verified. Please try again.');
+    }
     await refresh(); setBusyOrder(null);
   }
 
