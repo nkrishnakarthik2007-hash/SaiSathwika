@@ -11,6 +11,7 @@ type DiagnosticEntry = {
 
 const STORAGE_KEY = 'sai-sathwika-diagnostics-v1';
 const MAX_ENTRIES = 60;
+const CONSENT_STORAGE_KEY = 'sai-sathwika-diagnostics-consent';
 let installed = false;
 
 function redact(value: string): string {
@@ -62,6 +63,14 @@ export function installAppDiagnostics(): void {
 }
 
 export async function flushAppDiagnostics(client: any, userId: string): Promise<void> {
+  let sharingAllowed = false;
+  try {
+    sharingAllowed = typeof localStorage !== 'undefined' && localStorage.getItem(CONSENT_STORAGE_KEY) === 'granted';
+  } catch {
+    sharingAllowed = false;
+  }
+  if (!sharingAllowed || !client || !userId) return;
+
   const entries = readEntries();
   if (!entries.length || !client || !userId) return;
 

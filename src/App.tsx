@@ -33,6 +33,7 @@ export default function App() {
     catch { return {}; }
   });
   const [session, setSession] = useState<Session | null>(null);
+  const [diagnosticsConsent, setDiagnosticsConsent] = useState(() => localStorage.getItem('sai-sathwika-diagnostics-consent') === 'granted');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [installedAppVersion, setInstalledAppVersion] = useState('Checking…');
@@ -75,6 +76,22 @@ export default function App() {
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [installingUpdate, setInstallingUpdate] = useState(false);
   const [updateProgress, setUpdateProgress] = useState(0);
+
+  function updateDiagnosticsConsent(enabled: boolean) {
+    try {
+      localStorage.setItem('sai-sathwika-diagnostics-consent', enabled ? 'granted' : 'denied');
+    } catch {
+      setNotice('Could not save your diagnostics privacy setting on this device.');
+      return;
+    }
+    setDiagnosticsConsent(enabled);
+    if (enabled && supabase && session) {
+      void flushAppDiagnostics(supabase, session.user.id);
+      setNotice('Diagnostic sharing enabled. Recent reports may now be sent securely.');
+    } else if (!enabled) {
+      setNotice('Diagnostic sharing disabled. New error reports will stay on this device.');
+    }
+  }
 
   async function generateDeliveryOtp(orderId: string) {
     if (!supabase) return;
@@ -840,6 +857,15 @@ export default function App() {
           <button onClick={() => navigateCustomerPage('updates')}><RefreshCw size={17}/> App updates & version <ChevronRight size={16}/></button>
         </section>
       </div>
+      <section className="profile-content-card profile-diagnostics-card" aria-labelledby="diagnostics-privacy-title">
+        <div className="profile-card-heading"><div><span className="eyebrow">PRIVACY & SUPPORT</span><h2 id="diagnostics-privacy-title">Help improve the app</h2></div><ShieldCheck size={20}/></div>
+        <p className="profile-muted">Share technical error reports to help us fix crashes and app problems. Reports may include error messages and stack traces. They are stored in the private support database and visible only to the designated store Super Admin.</p>
+        <label className="diagnostics-consent-toggle">
+          <input type="checkbox" checked={diagnosticsConsent} onChange={event => updateDiagnosticsConsent(event.target.checked)} />
+          <span><strong>Allow diagnostic sharing</strong><small>{diagnosticsConsent ? 'Enabled — recent reports may sync when you are online.' : 'Disabled — reports remain on this device.'}</small></span>
+        </label>
+        <small className="profile-muted">You can change this setting anytime. Turning it off stops future uploads; an upload already in progress may finish. Reports already sent remain in the support database.</small>
+      </section>
     </section>}
 
     {customerPage === 'updates' && <section className="customer-page shell app-updates-page">
