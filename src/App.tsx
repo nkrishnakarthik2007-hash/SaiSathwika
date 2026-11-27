@@ -605,9 +605,10 @@ export default function App() {
 
   useEffect(() => {
     if (!supabase || !session || !roleResolved || adminRole !== 'customer' || adminView) return;
+    const client = supabase;
     let active = true;
     const loadDefaultAddress = async () => {
-      const {data,error} = await supabase
+      const {data,error} = await client
         .from('customer_addresses')
         .select('id,label,recipient_name,phone,address_line,landmark,latitude,longitude,is_default')
         .eq('customer_id',session.user.id)
@@ -678,6 +679,7 @@ export default function App() {
         if(addressError) throw addressError;
         addressId=addressRow.id;
       }
+      if (!addressId) throw new Error('Could not save your delivery address. Please try again.');
       const items=cartProducts.map(p=>({product_id:p.id,quantity:cart[p.id]}));
       const validCoupon=appliedCoupon&&appliedCoupon.subtotal===cartSubtotal?appliedCoupon:null;
       const {data,error}=await supabase.rpc('place_order',{p_items:items,p_address_id:addressId,p_customer_note:customerNote.trim()||null,p_coupon_code:validCoupon?.code??null});
