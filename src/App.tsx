@@ -686,6 +686,7 @@ export default function App() {
       setCart({}); setCartOpen(false); setCustomerNote(''); setCouponCode(''); setAppliedCoupon(null);
       setNotice(result?.order_number ? `Order #${result.order_number} placed successfully!` : 'Your order was placed successfully!');
       await loadOrders();
+      await loadCustomerAddresses();
     } catch(error:any) { setNotice(error?.message ?? 'Could not place your order. Please try again.'); }
     finally { setCheckoutBusy(false); }
   }
