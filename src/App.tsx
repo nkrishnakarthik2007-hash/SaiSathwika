@@ -161,54 +161,54 @@ export default function App() {
   useEffect(() => {
     if (customerPage === 'updates' && Capacitor.getPlatform() === 'android') void checkForUpdates();
   }, [customerPage]);
+  const [bootFailsafeElapsed, setBootFailsafeElapsed] = useState(false);
+
+  useEffect(() => {
+    const failsafe = window.setTimeout(() => setBootFailsafeElapsed(true), 10000);
+    return () => window.clearTimeout(failsafe);
+  }, []);
+
   useEffect(() => {
     let active = true;
-    let firstFrame: number | undefined;
-    let secondFrame: number | undefined;
     let revealTimer: number | undefined;
     let removeTimer: number | undefined;
-    const bootStartedAt = Date.now();
+    const bootStartedAt = Number(document.body.dataset.bootStartedAt || Date.now());
     const bootScreen = document.getElementById('app-boot-screen');
+    const appDataReady = !loading && (!supabase || sessionResolved);
+
+    // Never uncover a blank React root. Wait for the first usable app state,
+    // with a failsafe for slow or unavailable networks.
+    if (!appDataReady && !bootFailsafeElapsed) return;
 
     const revealRenderedApp = () => {
       if (!active) return;
       document.body.dataset.appReady = 'true';
       bootScreen?.classList.add('app-boot-screen-hidden');
-      removeTimer = window.setTimeout(() => bootScreen?.remove(), 420);
+      removeTimer = window.setTimeout(() => bootScreen?.remove(), 460);
     };
 
-    // index.html paints the boot screen before React and its bundles load.
-    // The native splash stays above it until React has rendered the storefront.
-    firstFrame = window.requestAnimationFrame(() => {
-      secondFrame = window.requestAnimationFrame(() => {
-        if (!active) return;
-        // Keep the branded launch visible long enough to feel intentional,
-        // while avoiding a long wait if the store is still loading data.
-        const reveal = () => {
-          if (Capacitor.isNativePlatform()) {
-            void SplashScreen.hide({ fadeOutDuration: 420 })
-              .then(() => window.requestAnimationFrame(revealRenderedApp))
-              .catch((error) => {
-                recordAppDiagnostic('Native splash handoff failed: ' + String(error));
-                revealRenderedApp();
-              });
-          } else {
+    const reveal = () => {
+      if (!active) return;
+      if (Capacitor.isNativePlatform()) {
+        void SplashScreen.hide({ fadeOutDuration: 500 })
+          .then(() => window.requestAnimationFrame(revealRenderedApp))
+          .catch((error) => {
+            recordAppDiagnostic('Native splash handoff failed: ' + String(error));
             revealRenderedApp();
-          }
-        };
-        const remaining = Math.max(0, 1150 - (Date.now() - bootStartedAt));
-        revealTimer = window.setTimeout(reveal, remaining);
-      });
-    });
+          });
+      } else {
+        revealRenderedApp();
+      }
+    };
 
+    const remaining = Math.max(0, 900 - (Date.now() - bootStartedAt));
+    revealTimer = window.setTimeout(reveal, remaining);
     return () => {
       active = false;
-      if (firstFrame !== undefined) window.cancelAnimationFrame(firstFrame);
-      if (secondFrame !== undefined) window.cancelAnimationFrame(secondFrame);
       if (revealTimer !== undefined) window.clearTimeout(revealTimer);
       if (removeTimer !== undefined) window.clearTimeout(removeTimer);
     };
-  }, []);
+  }, [loading, sessionResolved, bootFailsafeElapsed]);
 
   useEffect(() => {
     try { localStorage.setItem('sai-sathwika-cart',JSON.stringify(cart)); } catch { /* storage may be unavailable */ }
@@ -216,8 +216,13 @@ export default function App() {
 
   useEffect(() => {
     const client = supabase;
-    if (!client) { setLoading(false); return; }
+    if (!client) { setSessionResolved(true); setRoleResolved(true); setLoading(false); return; }
+    const authFallback = window.setTimeout(() => {
+      setSessionResolved(true);
+      setRoleResolved(true);
+    }, 9000);
     client.auth.getSession().then(({ data }) => {
+      window.clearTimeout(authFallback);
       setSessionResolved(true);
       setSession(data.session);
       if (data.session) {
@@ -227,6 +232,11 @@ export default function App() {
       } else {
         setRoleResolved(true);
       }
+    }).catch((error) => {
+      window.clearTimeout(authFallback);
+      recordAppDiagnostic('Initial session restore failed: ' + String(error));
+      setSessionResolved(true);
+      setRoleResolved(true);
     });
     const { data: listener } = client.auth.onAuthStateChange((_event, next) => {
       setSession(next);
@@ -351,6 +361,7 @@ export default function App() {
   useEffect(() => {
     if (!supabase) return;
     let alive = true;
+    const loadingFallback = window.setTimeout(() => { if (alive) setLoading(false); }, 9000);
     Promise.all([
       supabase.from('products').select('id,category_id,name,price,mrp,stock_quantity,image_urls,variant_label,unit,brands(name)').eq('is_available', true).gt('stock_quantity', 0).order('sort_order'),
       supabase.from('categories').select('id,name').eq('is_active', true).order('sort_order'),
@@ -360,9 +371,13 @@ export default function App() {
       if (!productResult.error) setProducts((productResult.data ?? []) as Product[]);
       if (!categoryResult.error) setCategories(categoryResult.data ?? []);
       if (!storeResult.error) { setStoreAccepting(storeResult.data?.accepting_orders ?? false); setDeliveryRadius(Number(storeResult.data?.delivery_radius_km ?? 2)); }
-      setLoading(false);
+    }).catch((error) => {
+      recordAppDiagnostic('Store data loading failed: ' + String(error));
+    }).finally(() => {
+      window.clearTimeout(loadingFallback);
+      if (alive) setLoading(false);
     });
-    return () => { alive = false; };
+    return () => { alive = false; window.clearTimeout(loadingFallback); };
   }, []);
 
   const cartProducts = products.filter(p => cart[p.id]);
