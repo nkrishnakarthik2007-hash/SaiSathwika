@@ -61,6 +61,7 @@ export default function App() {
   const [cartCloudUserId, setCartCloudUserId] = useState<string | null>(null);
   const cartSyncQueue = useRef<Promise<void>>(Promise.resolve());
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
+  const [orderStatusEvents, setOrderStatusEvents] = useState<Record<string,any[]>>({});
   const [deliveryOtps, setDeliveryOtps] = useState<Record<string,string>>({});
   const [deliveryOtpBusy, setDeliveryOtpBusy] = useState<string|null>(null);
   const [customerAddresses, setCustomerAddresses] = useState<any[]>([]);
@@ -490,6 +491,13 @@ export default function App() {
         .limit(30);
       if (error) throw error;
       setCustomerOrders(data ?? []);
+      const orderIds = (data ?? []).map((order:any) => order.id);
+      if (orderIds.length) {
+        const { data: events } = await supabase.from('order_status_events').select('id,order_id,old_status,new_status,changed_at').in('order_id', orderIds).order('changed_at', { ascending: true });
+        const grouped: Record<string,any[]> = {};
+        for (const event of events ?? []) (grouped[event.order_id] ??= []).push(event);
+        setOrderStatusEvents(grouped);
+      } else setOrderStatusEvents({});
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Could not load your orders.');
     } finally {
@@ -736,6 +744,7 @@ export default function App() {
             <div className="customer-order-top"><div><small>ORDER NUMBER</small><strong>#{order.order_number}</strong></div><span className={'customer-order-status ' + order.status}>{String(order.status).replaceAll('_',' ')}</span><small className="customer-payment-status">Payment: {(order.payment_method??'cash_on_delivery').replaceAll('_',' ')} · {(order.payment_status??'pending').replaceAll('_',' ')}</small></div>
             <div className="customer-order-items">{(order.order_items ?? []).map((item:any) => <div key={item.product_name_snapshot}><span>{item.product_name_snapshot} × {item.quantity}</span><strong>₹{Number(item.line_total ?? 0).toFixed(2)}</strong></div>)}</div>
             {order.delivery_address_snapshot?.address_line && <p className="customer-order-address"><MapPin size={14}/>{order.delivery_address_snapshot.address_line}</p>}
+            <div className="customer-order-timeline"><strong>Order progress</strong><div className="customer-order-timeline-steps">{(order.status === 'cancelled' ? ['placed','confirmed','preparing','cancelled'] : ['placed','confirmed','preparing','ready_for_dispatch','out_for_delivery','delivered']).map((stage:string,index:number) => { const sequence=['placed','confirmed','preparing','ready_for_dispatch','out_for_delivery','delivered']; const currentIndex=sequence.indexOf(order.status); const completed=order.status==='cancelled' ? stage==='placed'||stage==='confirmed'||stage==='preparing' : sequence.indexOf(stage)<=currentIndex; const event=(orderStatusEvents[order.id]??[]).find((item:any)=>item.new_status===stage); return <div className={'customer-order-timeline-step '+(completed?'completed':'')+(stage===order.status?' current':'')} key={stage}><span className="customer-order-timeline-dot"/><div><b>{stage.replaceAll('_',' ')}</b>{event && <small>{new Date(event.changed_at).toLocaleString()}</small>}</div></div>;})}</div></div>
             {order.status === 'out_for_delivery' && <div className="customer-delivery-otp"><div><strong>Delivery confirmation OTP</strong><small>Share this code with the delivery partner only when your order arrives. It expires in 10 minutes.</small></div>{deliveryOtps[order.id] ? <strong className="customer-otp-code">{deliveryOtps[order.id]}</strong> : <button type="button" disabled={deliveryOtpBusy===order.id} onClick={() => void generateDeliveryOtp(order.id)}>{deliveryOtpBusy===order.id?'Generating…':'Show delivery OTP'}</button>}</div>}
             <div className="customer-order-bottom"><small>{new Date(order.created_at).toLocaleString()}</small><strong>₹{Number(order.total).toFixed(2)}</strong></div>
           </article>)}</div>}
