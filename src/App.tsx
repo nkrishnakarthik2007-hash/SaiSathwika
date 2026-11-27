@@ -12,7 +12,6 @@ import { flushAppDiagnostics, installAppDiagnostics, recordAppDiagnostic } from 
 installAppDiagnostics();
 import AdminDashboard from './AdminDashboard';
 import DeliveryDashboard from './DeliveryDashboard';
-import MapPicker from './MapPicker';
 
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
@@ -56,15 +55,16 @@ export default function App() {
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [address, setAddress] = useState({recipient_name:'',phone:'',address_line:'',landmark:''});
   const [coords, setCoords] = useState<{latitude:number;longitude:number}|null>(null);
-  const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
   const [cartCloudUserId, setCartCloudUserId] = useState<string | null>(null);
   const cartSyncQueue = useRef<Promise<void>>(Promise.resolve());
+  const locationPromptedUser = useRef<string | null>(null);
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [orderStatusEvents, setOrderStatusEvents] = useState<Record<string,any[]>>({});
   const [deliveryOtps, setDeliveryOtps] = useState<Record<string,string>>({});
   const [deliveryOtpBusy, setDeliveryOtpBusy] = useState<string|null>(null);
   const [customerAddresses, setCustomerAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [customerNote, setCustomerNote] = useState('');
@@ -529,7 +529,7 @@ export default function App() {
     try {
       const { data, error } = await supabase
         .from('customer_addresses')
-        .select('id,label,recipient_name,phone,address_line,landmark,is_default')
+        .select('id,label,recipient_name,phone,address_line,landmark,latitude,longitude,is_default')
         .eq('customer_id', session.user.id)
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: false });
@@ -565,6 +565,9 @@ export default function App() {
     setCustomerPage('home');
     localStorage.removeItem('sai-sathwika-admin-view');
     setCustomerAddresses([]);
+    setSelectedAddressId('');
+    setAddress({recipient_name:'',phone:'',address_line:'',landmark:''});
+    setCoords(null);
     setCustomerOrders([]);
     setCartCloudUserId(null);
     setCart({});
@@ -577,12 +580,62 @@ export default function App() {
     setLocationBusy(true);
     navigator.geolocation.getCurrentPosition(pos=>{
       setCoords({latitude:pos.coords.latitude,longitude:pos.coords.longitude});
-      setLocationBusy(false); setNotice('Delivery location captured.');
+      setLocationBusy(false); setNotice('GPS location captured. It will be saved with your delivery address when you place an order.');
     },err=>{
       setLocationBusy(false);
-      setNotice(err.code===1?'Please allow location access to verify delivery.':'Could not get your location. Try again outdoors.');
+      setNotice(err.code===1?'Please allow location access to save your delivery location.':'Could not get your location. Try again outdoors.');
     },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
   }
+
+  function selectSavedAddress(id: string) {
+    setSelectedAddressId(id);
+    if (id === '__new__') {
+      setAddress({recipient_name:'',phone:'',address_line:'',landmark:''});
+      setCoords(null);
+      return;
+    }
+    const saved = customerAddresses.find(item => item.id === id);
+    if (!saved) return;
+    setAddress({recipient_name:saved.recipient_name ?? '',phone:saved.phone ?? '',address_line:saved.address_line ?? '',landmark:saved.landmark ?? ''});
+    setCoords(typeof saved.latitude === 'number' && typeof saved.longitude === 'number'
+      ? {latitude:saved.latitude,longitude:saved.longitude}
+      : null);
+    setNotice('Saved delivery address selected.');
+  }
+
+  useEffect(() => {
+    if (!supabase || !session || !roleResolved || adminRole !== 'customer' || adminView) return;
+    const client = supabase;
+    let active = true;
+    const loadDefaultAddress = async () => {
+      const {data,error} = await client
+        .from('customer_addresses')
+        .select('id,label,recipient_name,phone,address_line,landmark,latitude,longitude,is_default')
+        .eq('customer_id',session.user.id)
+        .order('is_default',{ascending:false})
+        .order('created_at',{ascending:false});
+      if (!active) return;
+      if (error) {
+        setNotice('Could not load saved delivery addresses: '+error.message);
+        return;
+      }
+      const saved = data ?? [];
+      setCustomerAddresses(saved);
+      if (saved.length) {
+        const preferred = saved.find(item=>item.is_default) ?? saved[0];
+        setSelectedAddressId(preferred.id);
+        setAddress({recipient_name:preferred.recipient_name ?? '',phone:preferred.phone ?? '',address_line:preferred.address_line ?? '',landmark:preferred.landmark ?? ''});
+        setCoords(typeof preferred.latitude === 'number' && typeof preferred.longitude === 'number'
+          ? {latitude:preferred.latitude,longitude:preferred.longitude}
+          : null);
+      } else if (locationPromptedUser.current !== session.user.id) {
+        locationPromptedUser.current = session.user.id;
+        captureLocation();
+      }
+    };
+    void loadDefaultAddress();
+    return () => { active = false; };
+  }, [session?.user.id, roleResolved, adminRole, adminView]);
   async function applyCoupon(){
     if(!supabase||!session){setNotice('Sign in before applying a coupon.');return;}
     const code=couponCode.trim().toUpperCase();
@@ -626,14 +679,17 @@ export default function App() {
         if(addressError) throw addressError;
         addressId=addressRow.id;
       }
+      if (!addressId) throw new Error('Could not save your delivery address. Please try again.');
       const items=cartProducts.map(p=>({product_id:p.id,quantity:cart[p.id]}));
       const validCoupon=appliedCoupon&&appliedCoupon.subtotal===cartSubtotal?appliedCoupon:null;
       const {data,error}=await supabase.rpc('place_order',{p_items:items,p_address_id:addressId,p_customer_note:customerNote.trim()||null,p_coupon_code:validCoupon?.code??null});
       if(error) throw error;
       const result=Array.isArray(data)?data[0]:data;
+      setSelectedAddressId(addressId);
       setCart({}); setCartOpen(false); setCustomerNote(''); setCouponCode(''); setAppliedCoupon(null);
       setNotice(result?.order_number ? `Order #${result.order_number} placed successfully!` : 'Your order was placed successfully!');
       await loadOrders();
+      await loadCustomerAddresses();
     } catch(error:any) { setNotice(error?.message ?? 'Could not place your order. Please try again.'); }
     finally { setCheckoutBusy(false); }
   }
@@ -759,7 +815,7 @@ export default function App() {
       </section>
       <div className="profile-content-grid">
         <section className="profile-content-card"><div className="profile-card-heading"><div><span className="eyebrow">DELIVERY DETAILS</span><h2>Saved addresses</h2></div><MapPin size={20}/></div>
-          {profileLoading ? <p className="profile-muted">Loading saved addresses…</p> : customerAddresses.length === 0 ? <p className="profile-muted">Your saved delivery addresses will appear here after your first order.</p> : customerAddresses.map(saved => <article className="saved-address" key={saved.id}><div><strong>{saved.label || 'Delivery address'} {saved.is_default && <span className="default-address-pill">Default</span>}</strong><p>{saved.recipient_name} · {saved.phone}</p><small>{saved.address_line}{saved.landmark ? ', ' + saved.landmark : ''}</small></div></article>)}
+          {profileLoading ? <p className="profile-muted">Loading saved addresses…</p> : customerAddresses.length === 0 ? <p className="profile-muted">Your saved delivery addresses will appear here after your first order.</p> : customerAddresses.map(saved => <article className="saved-address" key={saved.id}><div><strong>{saved.label || 'Delivery address'} {saved.is_default && <span className="default-address-pill">Default</span>}</strong><p>{saved.recipient_name} · {saved.phone}</p><small>{saved.address_line}{saved.landmark ? ', ' + saved.landmark : ''}</small><small>{typeof saved.latitude === 'number' && typeof saved.longitude === 'number' ? 'GPS location saved' : 'GPS location not saved'}</small></div></article>)}
         </section>
         <section className="profile-content-card profile-quick-actions"><div className="profile-card-heading"><div><span className="eyebrow">QUICK ACCESS</span><h2>Your shopping</h2></div><ShoppingBag size={20}/></div>
           <button onClick={() => navigateCustomerPage('orders')}><PackageCheck size={17}/> View my orders <ChevronRight size={16}/></button>
@@ -802,12 +858,13 @@ export default function App() {
         <div className="cart-total"><span>Subtotal</span><strong>₹{cartSubtotal.toFixed(2)}</strong></div>
         {!session ? <div className="checkout-signin"><p>Sign in with Google to continue to delivery details and checkout.</p><button className="google-button" onClick={signIn}>Continue with Google</button></div> :
         <div className="checkout-form"><h3>Delivery details</h3>
+          {customerAddresses.length > 0 && <label>Saved delivery address<select value={selectedAddressId || '__new__'} onChange={e=>selectSavedAddress(e.target.value)}><option value="__new__">Use a new delivery address</option>{customerAddresses.map(saved=><option key={saved.id} value={saved.id}>{saved.label || saved.address_line || 'Saved address'}{saved.is_default?' (Default)':''}</option>)}</select></label>}
           <label>Your name<input value={address.recipient_name} onChange={e=>setAddress(a=>({...a,recipient_name:e.target.value}))} placeholder="Recipient name"/></label>
           <label>Phone number<input value={address.phone} onChange={e=>setAddress(a=>({...a,phone:e.target.value}))} inputMode="tel" placeholder="10-digit mobile number"/></label>
           <label>Full delivery address<input value={address.address_line} onChange={e=>setAddress(a=>({...a,address_line:e.target.value}))} placeholder="House / flat, street, area"/></label>
           <label>Landmark (optional)<input value={address.landmark} onChange={e=>setAddress(a=>({...a,landmark:e.target.value}))} placeholder="Nearby landmark"/></label>
           <button className={coords?'location-captured':'location-button'} onClick={captureLocation} disabled={locationBusy}><LocateFixed size={17}/>{locationBusy?'Getting location…':coords?'Delivery location captured':'Use my current location'}</button>
-          {coords && <><button className="map-edit-button" onClick={()=>setMapPickerOpen(true)}><MapPin size={16}/> Adjust delivery pin on map</button><a className="maps-location-link" href={`https://www.openstreetmap.org/?mlat=${coords.latitude}&mlon=${coords.longitude}#map=17/${coords.latitude}/${coords.longitude}`} target="_blank" rel="noreferrer"><MapPin size={15}/> View pinned location in OpenStreetMap <ArrowRight size={14}/></a></>}
+          {coords && <small className="checkout-footnote">GPS coordinates captured: {coords.latitude.toFixed(6)}, {coords.longitude.toFixed(6)}. These coordinates will be saved with this address when you place the order.</small>}
           <div className="coupon-entry">
             <label htmlFor="checkout-coupon">Have a coupon?</label>
             <div className="coupon-entry-row"><input id="checkout-coupon" value={couponCode} onChange={e=>{setCouponCode(e.target.value.toUpperCase());setAppliedCoupon(null);}} placeholder="Enter coupon code" autoCapitalize="characters"/><button type="button" onClick={()=>void applyCoupon()} disabled={couponBusy||!couponCode.trim()}>{couponBusy?'Checking…':'Apply'}</button></div>
@@ -822,7 +879,6 @@ export default function App() {
       </>}
     </section></div>}
 
-    {mapPickerOpen && coords && <MapPicker initial={coords} onClose={()=>setMapPickerOpen(false)} onConfirm={point=>{setCoords(point);setMapPickerOpen(false);setNotice('Delivery pin updated.');}}/>}
     {customerPage === 'login' && <section className="dedicated-login-page">
       <button className="login-back-button" onClick={() => navigateCustomerPage('home')}><ArrowLeft size={17}/> Back to shop</button>
       <div className="dedicated-login-card">
