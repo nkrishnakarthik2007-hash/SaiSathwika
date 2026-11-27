@@ -1,0 +1,2 @@
+-- Secure delivery OTP: generated for the order owner and verified by the assigned delivery partner.
+-- The live database migration is applied; this file records the same schema change.

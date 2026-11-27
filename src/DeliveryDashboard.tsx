@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from './lib/supabase';
-import { ArrowLeft, CheckCircle2, Clock3, MapPin, Navigation, Phone, RefreshCw, Truck } from 'lucide-react';
+import { CheckCircle2, Clock3, Navigation, Phone, RefreshCw, Truck, ShieldCheck } from 'lucide-react';
 
 type DeliveryOrder = {
   id: string;
@@ -20,7 +20,7 @@ export default function DeliveryDashboard({ onSignOut }: { onSignOut: () => void
   const [loading, setLoading] = useState(true);
   const [busyOrder, setBusyOrder] = useState<string | null>(null);
   const [message, setMessage] = useState('');
-  const [locationState, setLocationState] = useState('Location sharing is off');
+  const [otpByOrder, setOtpByOrder] = useState<Record<string,string>>({});
 
   const refresh = useCallback(async () => {
     if (!supabase) return;
@@ -44,39 +44,26 @@ export default function DeliveryDashboard({ onSignOut }: { onSignOut: () => void
 
   const activeOrder = useMemo(() => orders.find(order => order.status === 'out_for_delivery') ?? null, [orders]);
 
-  useEffect(() => {
-    if (!activeOrder || !supabase) {
-      setLocationState('Location sharing is off');
-      return;
-    }
-    if (!navigator.geolocation) {
-      setLocationState('GPS is not available on this device');
-      return;
-    }
-    setLocationState('Waiting for GPS permission…');
-    const watchId = navigator.geolocation.watchPosition(async position => {
-      const { error } = await supabase!.rpc('record_delivery_location', {
-        p_order_id: activeOrder.id,
-        p_latitude: position.coords.latitude,
-        p_longitude: position.coords.longitude,
-        p_accuracy_m: position.coords.accuracy
-      });
-      setLocationState(error ? 'Could not share location: ' + error.message : 'Sharing live location for this delivery');
-    }, error => {
-      setLocationState(error.code === 1 ? 'Location permission denied' : 'GPS signal unavailable. Keep the app open and try again.');
-    }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [activeOrder?.id]);
-
-  async function runAction(order: DeliveryOrder, action: 'start_assigned_delivery' | 'complete_assigned_delivery') {
+  async function runAction(order: DeliveryOrder, action: 'start_assigned_delivery') {
     if (!supabase) return;
     setBusyOrder(order.id);
     setMessage('');
     const { error } = await supabase.rpc(action, { p_order_id: order.id });
     if (error) setMessage(error.message);
-    else setMessage(action === 'start_assigned_delivery' ? 'Delivery started. Keep Sai Sathwika open to share your live location.' : 'Order marked as delivered.');
+    else setMessage('Delivery started. Ask the customer for the six-digit delivery OTP when you reach them.');
     await refresh();
     setBusyOrder(null);
+  }
+
+  async function verifyOtp(order: DeliveryOrder) {
+    if (!supabase) return;
+    const otp = (otpByOrder[order.id] ?? '').trim();
+    if (!/^\d{6}$/.test(otp)) { setMessage('Enter the six-digit OTP shown in the customer order screen.'); return; }
+    setBusyOrder(order.id); setMessage('');
+    const { error } = await supabase.rpc('verify_delivery_otp', { p_order_id: order.id, p_otp: otp });
+    if (error) setMessage(error.message);
+    else { setMessage('OTP verified. Order marked as delivered.'); setOtpByOrder(current => ({ ...current, [order.id]: '' })); }
+    await refresh(); setBusyOrder(null);
   }
 
   function openNavigation(order: DeliveryOrder) {
@@ -97,7 +84,7 @@ export default function DeliveryDashboard({ onSignOut }: { onSignOut: () => void
       <span className="eyebrow">YOUR DELIVERY DESK</span>
       <h1>Good day. Ready to deliver?</h1>
       <p>Only orders assigned to your account appear here.</p>
-      <div className="delivery-live-state"><span className={activeOrder ? 'delivery-live-dot on' : 'delivery-live-dot'}/>{locationState}</div>
+      <div className="delivery-live-state"><ShieldCheck size={16}/> Delivery completion uses a customer OTP. No live location is collected.</div>
     </section>
     <section className="delivery-list">
       <div className="delivery-list-heading"><div><span className="eyebrow">ASSIGNED TO YOU</span><h2>Your deliveries</h2></div><button type="button" onClick={() => void refresh()}><RefreshCw size={16}/> Refresh</button></div>
@@ -116,11 +103,11 @@ export default function DeliveryDashboard({ onSignOut }: { onSignOut: () => void
               {phone && <a href={'tel:'+phone}><Phone size={16}/> Call customer</a>}
               <button type="button" onClick={() => openNavigation(order)}><Navigation size={16}/> Navigate</button>
               {order.status === 'preparing' && <button className="delivery-primary" type="button" disabled={busyOrder===order.id} onClick={() => void runAction(order,'start_assigned_delivery')}>{busyOrder===order.id?'Starting…':'Start delivery'}</button>}
-              {order.status === 'out_for_delivery' && <button className="delivery-primary" type="button" disabled={busyOrder===order.id} onClick={() => void runAction(order,'complete_assigned_delivery')}><CheckCircle2 size={16}/>{busyOrder===order.id?'Updating…':'Mark delivered'}</button>}
+              {order.status === 'out_for_delivery' && <div className="delivery-otp-verify"><label htmlFor={'delivery-otp-'+order.id}>Customer delivery OTP</label><input id={'delivery-otp-'+order.id} inputMode="numeric" maxLength={6} placeholder="6-digit code" value={otpByOrder[order.id] ?? ''} onChange={event => setOtpByOrder(current => ({...current,[order.id]:event.target.value.replace(/\D/g,'').slice(0,6)}))}/><button className="delivery-primary" type="button" disabled={busyOrder===order.id} onClick={() => void verifyOtp(order)}><CheckCircle2 size={16}/>{busyOrder===order.id?'Verifying…':'Verify & deliver'}</button></div>}
             </div>
           </article>;
         })}
     </section>
-    <p className="delivery-privacy-note">Live location is shared only while you have an active assigned delivery and keep this screen open. Sharing stops when the delivery is completed or you leave this screen.</p>
+    <p className="delivery-privacy-note">For customer privacy, this app does not collect or share delivery-partner live GPS location. Orders are completed only after customer OTP verification.</p>
   </main>;
 }
