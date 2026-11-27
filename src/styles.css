@@ -716,3 +716,5 @@ footer{background:linear-gradient(110deg,#edf5e7,#f8f7ed)!important;border-top:1
 .admin-quick-actions>button small{color:#89958a;font-size:9px}
 .admin-quick-actions>button>svg:last-child{color:#a0aca0}
 @media(max-width:760px){.admin-dashboard-lower{grid-template-columns:1fr;gap:10px;margin-top:10px}}
+
+/* Mobile admin layout tuned for compact Android viewport widths. */
