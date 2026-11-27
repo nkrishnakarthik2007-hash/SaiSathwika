@@ -698,3 +698,21 @@ footer{background:linear-gradient(110deg,#edf5e7,#f8f7ed)!important;border-top:1
  .admin-mobile-nav button{font-size:8px}
 }
 @media(prefers-reduced-motion:reduce){.admin-page *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+.admin-dashboard-lower{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);gap:13px;margin-top:14px}
+.admin-low-stock-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #edf1ea}
+.admin-low-stock-row img,.admin-low-stock-placeholder{width:40px;height:40px;flex-shrink:0;object-fit:contain;border:1px solid #e8eee5;border-radius:10px;background:#f5f8f2}
+.admin-low-stock-placeholder{display:grid;place-items:center;color:#7c9b7e}
+.admin-low-stock-row>span:nth-child(2){display:grid;gap:4px;flex:1;min-width:0}
+.admin-low-stock-row strong{color:#2b4933;font-size:11px;overflow-wrap:anywhere}
+.admin-low-stock-row small{color:#8a968b;font-size:9px}
+.admin-low-stock-row>b{color:#9a6b2d;font-size:11px;white-space:nowrap}
+.admin-quick-actions{display:grid;align-content:start;gap:8px}
+.admin-quick-actions h2{margin-bottom:5px}
+.admin-quick-actions>button{display:flex;align-items:center;gap:10px;min-height:54px;padding:9px 10px;border:1px solid #e9eee7;border-radius:12px;background:#fff;color:#4d7654;text-align:left}
+.admin-quick-actions>button>span{display:grid;gap:3px;flex:1}
+.admin-quick-actions>button strong{color:#294b32;font:700 11px 'DM Sans'}
+.admin-quick-actions>button small{color:#89958a;font-size:9px}
+.admin-quick-actions>button>svg:last-child{color:#a0aca0}
+@media(max-width:760px){.admin-dashboard-lower{grid-template-columns:1fr;gap:10px;margin-top:10px}}
