@@ -577,12 +577,61 @@ export default function App() {
     setLocationBusy(true);
     navigator.geolocation.getCurrentPosition(pos=>{
       setCoords({latitude:pos.coords.latitude,longitude:pos.coords.longitude});
-      setLocationBusy(false); setNotice('Delivery location captured.');
+      setLocationBusy(false); setNotice('GPS location captured. It will be saved with your delivery address when you place an order.');
     },err=>{
       setLocationBusy(false);
-      setNotice(err.code===1?'Please allow location access to verify delivery.':'Could not get your location. Try again outdoors.');
+      setNotice(err.code===1?'Please allow location access to save your delivery location.':'Could not get your location. Try again outdoors.');
     },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
   }
+
+  function selectSavedAddress(id: string) {
+    setSelectedAddressId(id);
+    if (id === '__new__') {
+      setAddress({recipient_name:'',phone:'',address_line:'',landmark:''});
+      setCoords(null);
+      return;
+    }
+    const saved = customerAddresses.find(item => item.id === id);
+    if (!saved) return;
+    setAddress({recipient_name:saved.recipient_name ?? '',phone:saved.phone ?? '',address_line:saved.address_line ?? '',landmark:saved.landmark ?? ''});
+    setCoords(typeof saved.latitude === 'number' && typeof saved.longitude === 'number'
+      ? {latitude:saved.latitude,longitude:saved.longitude}
+      : null);
+    setNotice('Saved delivery address selected.');
+  }
+
+  useEffect(() => {
+    if (!supabase || !session || !roleResolved || adminRole !== 'customer' || adminView) return;
+    let active = true;
+    const loadDefaultAddress = async () => {
+      const {data,error} = await supabase
+        .from('customer_addresses')
+        .select('id,label,recipient_name,phone,address_line,landmark,latitude,longitude,is_default')
+        .eq('customer_id',session.user.id)
+        .order('is_default',{ascending:false})
+        .order('created_at',{ascending:false});
+      if (!active) return;
+      if (error) {
+        setNotice('Could not load saved delivery addresses: '+error.message);
+        return;
+      }
+      const saved = data ?? [];
+      setCustomerAddresses(saved);
+      if (saved.length) {
+        const preferred = saved.find(item=>item.is_default) ?? saved[0];
+        setSelectedAddressId(preferred.id);
+        setAddress({recipient_name:preferred.recipient_name ?? '',phone:preferred.phone ?? '',address_line:preferred.address_line ?? '',landmark:preferred.landmark ?? ''});
+        setCoords(typeof preferred.latitude === 'number' && typeof preferred.longitude === 'number'
+          ? {latitude:preferred.latitude,longitude:preferred.longitude}
+          : null);
+      } else if (locationPromptedUser.current !== session.user.id) {
+        locationPromptedUser.current = session.user.id;
+        captureLocation();
+      }
+    };
+    void loadDefaultAddress();
+    return () => { active = false; };
+  }, [session?.user.id, roleResolved, adminRole, adminView]);
   async function applyCoupon(){
     if(!supabase||!session){setNotice('Sign in before applying a coupon.');return;}
     const code=couponCode.trim().toUpperCase();
