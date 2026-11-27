@@ -65,6 +65,9 @@ export default function App() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [customerNote, setCustomerNote] = useState('');
+  const [couponCode,setCouponCode]=useState('');
+  const [appliedCoupon,setAppliedCoupon]=useState<{code:string;discount:number;subtotal:number;name:string}|null>(null);
+  const [couponBusy,setCouponBusy]=useState(false);
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [installingUpdate, setInstallingUpdate] = useState(false);
@@ -561,6 +564,21 @@ export default function App() {
       setNotice(err.code===1?'Please allow location access to verify delivery.':'Could not get your location. Try again outdoors.');
     },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
   }
+  async function applyCoupon(){
+    if(!supabase||!session){setNotice('Sign in before applying a coupon.');return;}
+    const code=couponCode.trim().toUpperCase();
+    if(!code){setNotice('Enter a coupon code first.');return;}
+    setCouponBusy(true);
+    try{
+      const {data,error}=await supabase.rpc('validate_coupon',{p_coupon_code:code,p_subtotal:cartSubtotal});
+      if(error)throw error;
+      const result=Array.isArray(data)?data[0]:data;
+      setAppliedCoupon({code:result.coupon_code,discount:Number(result.discount),subtotal:cartSubtotal,name:result.promotion_name});
+      setNotice('Coupon '+result.coupon_code+' applied. You save ₹'+Number(result.discount).toFixed(2)+'.');
+    }catch(error:any){setAppliedCoupon(null);setNotice(error?.message??'Could not validate this coupon.');}
+    finally{setCouponBusy(false);}
+  }
+
   async function placeOrder() {
     if(storeAccepting===false){setNotice('Online ordering is currently closed. Please check back later.');return;}
     if(!supabase || !session){setCartOpen(false);setCustomerPage('login');return;}
@@ -590,10 +608,11 @@ export default function App() {
         addressId=addressRow.id;
       }
       const items=cartProducts.map(p=>({product_id:p.id,quantity:cart[p.id]}));
-      const {data,error}=await supabase.rpc('place_order',{p_items:items,p_address_id:addressId,p_customer_note:customerNote.trim()||null});
+      const validCoupon=appliedCoupon&&appliedCoupon.subtotal===cartSubtotal?appliedCoupon:null;
+      const {data,error}=await supabase.rpc('place_order',{p_items:items,p_address_id:addressId,p_customer_note:customerNote.trim()||null,p_coupon_code:validCoupon?.code??null});
       if(error) throw error;
       const result=Array.isArray(data)?data[0]:data;
-      setCart({}); setCartOpen(false); setCustomerNote('');
+      setCart({}); setCartOpen(false); setCustomerNote(''); setCouponCode(''); setAppliedCoupon(null);
       setNotice(result?.order_number ? `Order #${result.order_number} placed successfully!` : 'Your order was placed successfully!');
       await loadOrders();
     } catch(error:any) { setNotice(error?.message ?? 'Could not place your order. Please try again.'); }
@@ -768,9 +787,15 @@ export default function App() {
           <label>Landmark (optional)<input value={address.landmark} onChange={e=>setAddress(a=>({...a,landmark:e.target.value}))} placeholder="Nearby landmark"/></label>
           <button className={coords?'location-captured':'location-button'} onClick={captureLocation} disabled={locationBusy}><LocateFixed size={17}/>{locationBusy?'Getting location…':coords?'Delivery location captured':'Use my current location'}</button>
           {coords && <><button className="map-edit-button" onClick={()=>setMapPickerOpen(true)}><MapPin size={16}/> Adjust delivery pin on map</button><a className="maps-location-link" href={`https://www.openstreetmap.org/?mlat=${coords.latitude}&mlon=${coords.longitude}#map=17/${coords.latitude}/${coords.longitude}`} target="_blank" rel="noreferrer"><MapPin size={15}/> View pinned location in OpenStreetMap <ArrowRight size={14}/></a></>}
+          <div className="coupon-entry">
+            <label htmlFor="checkout-coupon">Have a coupon?</label>
+            <div className="coupon-entry-row"><input id="checkout-coupon" value={couponCode} onChange={e=>{setCouponCode(e.target.value.toUpperCase());setAppliedCoupon(null);}} placeholder="Enter coupon code" autoCapitalize="characters"/><button type="button" onClick={()=>void applyCoupon()} disabled={couponBusy||!couponCode.trim()}>{couponBusy?'Checking…':'Apply'}</button></div>
+            {appliedCoupon&&appliedCoupon.subtotal===cartSubtotal&&<div className="coupon-applied"><span>{appliedCoupon.code} · {appliedCoupon.name}</span><button type="button" onClick={()=>{setAppliedCoupon(null);setCouponCode('');}}>Remove</button></div>}
+          </div>
+          {appliedCoupon&&appliedCoupon.subtotal===cartSubtotal&&<div className="checkout-discount-summary"><span>Coupon discount</span><strong>−₹{appliedCoupon.discount.toFixed(2)}</strong><span>Order total before delivery</span><strong>₹{Math.max(0,cartSubtotal-appliedCoupon.discount).toFixed(2)}</strong></div>}
           <label>Note for the store (optional)<textarea value={customerNote} onChange={e=>setCustomerNote(e.target.value)} placeholder="Any delivery instructions?"/></label>
           <div className="payment-method-card"><span className="payment-cod-icon">₹</span><div><strong>Cash on delivery</strong><small>Pay when your order arrives. No online payment needed.</small></div><span className="payment-selected">Selected</span></div>
-          <button className="place-order-button" onClick={placeOrder} disabled={checkoutBusy || storeAccepting===false}>{checkoutBusy?'Placing order…':storeAccepting===false?'Ordering currently closed':'Place order · ₹'+cartSubtotal.toFixed(2)}</button>
+          <button className="place-order-button" onClick={placeOrder} disabled={checkoutBusy || storeAccepting===false}>{checkoutBusy?'Placing order…':storeAccepting===false?'Ordering currently closed':'Place order · ₹'+Math.max(0,cartSubtotal-(appliedCoupon&&appliedCoupon.subtotal===cartSubtotal?appliedCoupon.discount:0)).toFixed(2)}</button>
           <small className="checkout-footnote">{storeAccepting===false?'This store is not accepting online orders right now. Your cart will be saved.':'Cash on delivery. Final delivery eligibility and charges are verified securely by the store.'}</small>
         </div>}
       </>}

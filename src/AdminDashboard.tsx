@@ -103,6 +103,12 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   const [promotionDescription,setPromotionDescription]=useState('');
   const [promotionType,setPromotionType]=useState('percentage');
   const [promotionRules,setPromotionRules]=useState('10');
+  const [promotionCoupon,setPromotionCoupon]=useState('');
+  const [promotionMinimum,setPromotionMinimum]=useState('0');
+  const [promotionMaximum,setPromotionMaximum]=useState('');
+  const [promotionUsageLimit,setPromotionUsageLimit]=useState('');
+  const [promotionStarts,setPromotionStarts]=useState('');
+  const [promotionEnds,setPromotionEnds]=useState('');
   const [promotionBusy,setPromotionBusy]=useState(false);
   const [diagnostics,setDiagnostics]=useState<any[]>([]);
   const [diagnosticsBusy,setDiagnosticsBusy]=useState(false);
@@ -357,20 +363,28 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   }
   async function addPromotion(){
     if(!supabase||!promotionName.trim())return;
-    const rawValue=Number(promotionRules);
+    const rawValue=Number(promotionRules),minimum=Number(promotionMinimum);
+    const coupon=promotionCoupon.trim().toUpperCase();
+    const maximum=promotionMaximum===''?null:Number(promotionMaximum);
+    const usage=promotionUsageLimit===''?null:Number(promotionUsageLimit);
     if(!Number.isFinite(rawValue)||rawValue<=0){setMessage('Enter a valid promotion value greater than zero.');return;}
     if(promotionType==='percentage'&&rawValue>100){setMessage('Percentage discount cannot be more than 100%.');return;}
+    if(!coupon||!/^[A-Z0-9_-]{3,24}$/.test(coupon)){setMessage('Enter a coupon code using 3–24 letters, numbers, hyphens or underscores.');return;}
+    if(!Number.isFinite(minimum)||minimum<0){setMessage('Minimum order value must be ₹0 or more.');return;}
+    if(maximum!==null&&(!Number.isFinite(maximum)||maximum<=0)){setMessage('Maximum discount must be greater than ₹0.');return;}
+    if(usage!==null&&(!Number.isInteger(usage)||usage<1)){setMessage('Usage limit must be a whole number greater than zero.');return;}
+    if(promotionStarts&&promotionEnds&&new Date(promotionEnds)<=new Date(promotionStarts)){setMessage('End date must be after the start date.');return;}
+    if(!['percentage','fixed_amount'].includes(promotionType)){setMessage('Coupon codes currently support percentage and fixed amount offers.');return;}
     setPromotionBusy(true);
-    const rules=promotionType==='percentage'?{percentage:rawValue}:promotionType==='fixed_amount'?{amount:rawValue}:{minimum_quantity:1};
+    const rules=promotionType==='percentage'?{percentage:rawValue}:{amount:rawValue};
     const {error}=await supabase.from('promotions').insert({
-      name:promotionName.trim(),
-      description:promotionDescription.trim()||null,
-      promotion_type:promotionType,
-      rules,
-      is_active:false
+      name:promotionName.trim(),description:promotionDescription.trim()||null,promotion_type:promotionType,rules,
+      coupon_code:coupon,minimum_order_value:minimum,maximum_discount:maximum,usage_limit:usage,
+      starts_at:promotionStarts?new Date(promotionStarts).toISOString():null,
+      ends_at:promotionEnds?new Date(promotionEnds).toISOString():null,is_active:false
     });
-    if(error)setMessage(error.message);
-    else{setMessage('Promotion created. Activate it when it is ready.');setPromotionName('');setPromotionDescription('');setPromotionRules('10');void refreshPromotions();}
+    if(error)setMessage(error.code==='23505'?'That coupon code is already in use. Choose another code.':error.message);
+    else{setMessage('Coupon created as a draft. Review it, then activate it when ready.');setPromotionName('');setPromotionDescription('');setPromotionRules('10');setPromotionCoupon('');setPromotionMinimum('0');setPromotionMaximum('');setPromotionUsageLimit('');setPromotionStarts('');setPromotionEnds('');void refreshPromotions();}
     setPromotionBusy(false);
   }
   async function togglePromotion(id:string,isActive:boolean){
@@ -458,6 +472,16 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   <form className="admin-form admin-promotion-form" onSubmit={event=>{event.preventDefault();void addPromotion();}}>
     <label>Promotion name<input required value={promotionName} onChange={e=>setPromotionName(e.target.value)} placeholder="e.g. Weekend dairy savings"/></label>
     <label>Description<input value={promotionDescription} onChange={e=>setPromotionDescription(e.target.value)} placeholder="Offer details for customers"/></label>
+    <label>Coupon code<input required maxLength={24} value={promotionCoupon} onChange={e=>setPromotionCoupon(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g,''))} placeholder="e.g. SAI10"/></label>
+    <div className="admin-two">
+      <label>Minimum order value (₹)<input type="number" min="0" step="0.01" value={promotionMinimum} onChange={e=>setPromotionMinimum(e.target.value)}/></label>
+      <label>Maximum discount (₹)<input type="number" min="0.01" step="0.01" value={promotionMaximum} onChange={e=>setPromotionMaximum(e.target.value)} placeholder="No limit"/></label>
+    </div>
+    <div className="admin-two">
+      <label>Usage limit<input type="number" min="1" step="1" value={promotionUsageLimit} onChange={e=>setPromotionUsageLimit(e.target.value)} placeholder="Unlimited"/></label>
+      <label>Starts at<input type="datetime-local" value={promotionStarts} onChange={e=>setPromotionStarts(e.target.value)}/></label>
+    </div>
+    <label>Ends at<input type="datetime-local" value={promotionEnds} onChange={e=>setPromotionEnds(e.target.value)}/></label>
     <div className="admin-two">
       <label>Offer type<select value={promotionType} onChange={e=>setPromotionType(e.target.value)}><option value="percentage">Percentage discount</option><option value="fixed_amount">Fixed amount off</option><option value="free_delivery">Free delivery</option><option value="bundle">Bundle offer</option></select></label>
       <label>{promotionType==='percentage'?'Discount (%)':promotionType==='fixed_amount'?'Discount (₹)':'Offer value'}<input type="number" min="1" step="0.01" value={promotionRules} onChange={e=>setPromotionRules(e.target.value)} disabled={promotionType==='free_delivery'||promotionType==='bundle'}/></label>
@@ -465,7 +489,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     <button className="admin-submit" disabled={promotionBusy}><Save size={16}/>{promotionBusy?'Creating…':'Create promotion'}</button>
   </form>
   <div className="admin-promotion-list">{promotions.length===0?<p className="admin-hint">No promotions created yet.</p>:promotions.map(p=><article className="admin-promotion-row" key={p.id}>
-    <div><strong>{p.name}</strong><small>{p.description||p.promotion_type.replaceAll('_',' ')}</small><small>{p.promotion_type.replaceAll('_',' ')} · Created {new Date(p.created_at).toLocaleDateString()}</small></div>
+    <div><strong>{p.name}</strong><small>{p.description||p.promotion_type.replaceAll('_',' ')}</small><small>{p.coupon_code?('Code: '+p.coupon_code+' · '):''}{p.promotion_type.replaceAll('_',' ')} · Min ₹{Number(p.minimum_order_value??0).toFixed(0)} · Used {p.usage_count??0}{p.usage_limit?'/'+p.usage_limit:''}</small><small>{p.ends_at?'Ends '+new Date(p.ends_at).toLocaleString():'No expiry set'}</small></div>
     <span className={p.is_active?'admin-active-pill':'admin-inactive-pill'}>{p.is_active?'Active':'Draft'}</span>
     <button type="button" onClick={()=>void togglePromotion(p.id,p.is_active)}>{p.is_active?'Pause':'Activate'}</button>
   </article>)}</div>
