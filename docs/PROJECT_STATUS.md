@@ -37,9 +37,14 @@ Last reviewed: 2026-11-27
 
 ## Exact next steps
 
-1. Review this draft PR and confirm its web/TypeScript build passes.
+1. Draft PR #5 validation passed on 2026-11-27: dependency installation and TypeScript/Vite build succeeded. Physical Android testing remains pending.
 2. Authorize Vercel team access and verify the actual storefront deployment/domain.
 3. Add real product photos, variants, prices and stock.
 4. Test Google OAuth, Android callback, cart persistence, delivery checks and COD checkout with controlled test data.
 5. Verify the Android release feed and decide whether production devices should receive stable releases only.
 6. Keep accepting_orders disabled until the store owner confirms readiness.
+
+## Review handoff update
+
+- Draft PR #5 (based on the latest main) is mergeable and its PR-only web/TypeScript validation passed. It supersedes the stale/conflicted PR #1; do not merge PR #1.
+- No production deployment, Android release, database migration or live ordering change was made.
