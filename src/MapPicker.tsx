@@ -3,6 +3,7 @@ import { Map as MapLibreMap, Marker, NavigationControl, setWorkerUrl } from 'map
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { ArrowLeft, LocateFixed, Search, X } from 'lucide-react';
+import { getDeviceLocation } from './lib/location';
 
 setWorkerUrl(workerUrl);
 
@@ -64,15 +65,16 @@ export default function MapPicker({ initial, onConfirm, onClose }: {
     } finally { setSearching(false); }
   }
 
-  function locateMe() {
-    if (!navigator.geolocation) { setError('Location is not supported on this device.'); return; }
+  async function locateMe() {
     setError('');
-    navigator.geolocation.getCurrentPosition(pos => {
-      const next = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+    try {
+      const next = await getDeviceLocation();
       point.current = next; setSelected(next);
       marker.current?.setLngLat([next.longitude, next.latitude]);
       map.current?.flyTo({ center: [next.longitude, next.latitude], zoom: 17, essential: true });
-    }, () => setError('Could not get your location. Please allow location access and try again.'), { enableHighAccuracy: true, timeout: 15000 });
+    } catch(error) {
+      setError(error instanceof Error ? error.message : 'Could not get your location. Please try again.');
+    }
   }
 
   return <div className="map-picker-backdrop" role="dialog" aria-modal="true" aria-label="Choose delivery location">
