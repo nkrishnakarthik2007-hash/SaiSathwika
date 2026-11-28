@@ -19,7 +19,7 @@ const locationPermissions = [
   'android.permission.ACCESS_COARSE_LOCATION',
   'android.permission.ACCESS_FINE_LOCATION',
 ];
-const manifestOpen = manifest.match(/<manifest\\b[^>]*>/);
+const manifestOpen = manifest.match(/<manifest\b[^>]*>/);
 if (!manifestOpen || manifestOpen.index === undefined) {
   throw new Error('Could not find the opening manifest tag in AndroidManifest.xml.');
 }
@@ -28,9 +28,9 @@ const missingLocationPermissions = locationPermissions
 if (missingLocationPermissions.length > 0) {
   const permissionXml = missingLocationPermissions
     .map((permission) => '    <uses-permission android:name="' + permission + '" />')
-    .join('\\n') + '\\n';
+    .join('\n') + '\n';
   const insertAt = manifestOpen.index + manifestOpen[0].length;
-  manifest = manifest.slice(0, insertAt) + '\\n' + permissionXml + manifest.slice(insertAt);
+  manifest = manifest.slice(0, insertAt) + '\n' + permissionXml + manifest.slice(insertAt);
 }
 const mainActivityPath = javaRoot + '/MainActivity.java';
 const mainActivity = await read(mainActivityPath);
