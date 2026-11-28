@@ -21,6 +21,7 @@ export default function MapPicker({ initial, initialSearch = '', onConfirm, onCl
   const marker = useRef<Marker | null>(null);
   const point = useRef<Coordinates>(startingPoint);
   const [selected, setSelected] = useState<Coordinates>(startingPoint);
+  const [hasSelectedLocation, setHasSelectedLocation] = useState(Boolean(initial));
   const [search, setSearch] = useState('');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
@@ -43,6 +44,7 @@ export default function MapPicker({ initial, initialSearch = '', onConfirm, onCl
       const next = { latitude: pos.lat, longitude: pos.lng };
       point.current = next;
       setSelected(next);
+      setHasSelectedLocation(true);
     });
     instance.addControl(new NavigationControl({ showCompass: true }), 'bottom-right');
     return () => { marker.current?.remove(); instance.remove(); map.current = null; };
@@ -60,7 +62,7 @@ export default function MapPicker({ initial, initialSearch = '', onConfirm, onCl
       if (!feature) throw new Error('No matching place found. Try a nearby landmark.');
       const [longitude, latitude] = feature.geometry.coordinates as [number, number];
       const next = { latitude, longitude };
-      point.current = next; setSelected(next);
+      point.current = next; setSelected(next); setHasSelectedLocation(true);
       marker.current?.setLngLat([longitude, latitude]);
       map.current?.flyTo({ center: [longitude, latitude], zoom: 17, essential: true });
     } catch (e) {
@@ -78,7 +80,7 @@ export default function MapPicker({ initial, initialSearch = '', onConfirm, onCl
     setError('');
     try {
       const next = await getDeviceLocation();
-      point.current = next; setSelected(next);
+      point.current = next; setSelected(next); setHasSelectedLocation(true);
       marker.current?.setLngLat([next.longitude, next.latitude]);
       map.current?.flyTo({ center: [next.longitude, next.latitude], zoom: 17, essential: true });
     } catch(error) {
@@ -94,7 +96,7 @@ export default function MapPicker({ initial, initialSearch = '', onConfirm, onCl
       </form>
       <div className="map-picker-canvas" ref={container}/>
       {error && <p className="map-picker-error">{error}</p>}
-      <div className="map-picker-bottom"><button className="map-locate" type="button" onClick={()=>void locateMe()}><LocateFixed size={17}/> Use my location</button><div className="map-pin-summary"><small><MapPinned size={13}/> PINNED LOCATION</small><span>{selected.latitude.toFixed(5)}, {selected.longitude.toFixed(5)}</span><button type="button" onClick={()=>{void navigator.clipboard?.writeText(selected.latitude.toFixed(6)+', '+selected.longitude.toFixed(6)).then(()=>setCopied(true)).catch(()=>setError('Could not copy coordinates.'));}}>{copied?<Check size={13}/>:<Copy size={13}/>} {copied?'Copied':'Copy coordinates'}</button></div><button className="map-confirm" type="button" onClick={()=>onConfirm(point.current)}>Confirm location</button></div>
+      <div className="map-picker-bottom"><button className="map-locate" type="button" onClick={()=>void locateMe()}><LocateFixed size={17}/> Use my location</button><div className="map-pin-summary"><small><MapPinned size={13}/> PINNED LOCATION</small><span>{selected.latitude.toFixed(5)}, {selected.longitude.toFixed(5)}</span><button type="button" onClick={()=>{void navigator.clipboard?.writeText(selected.latitude.toFixed(6)+', '+selected.longitude.toFixed(6)).then(()=>setCopied(true)).catch(()=>setError('Could not copy coordinates.'));}}>{copied?<Check size={13}/>:<Copy size={13}/>} {copied?'Copied':'Copy coordinates'}</button></div><button className="map-confirm" type="button" disabled={!hasSelectedLocation} onClick={()=>onConfirm(point.current)}>Confirm location</button></div>
       <p className="map-attribution">Check that the pin matches the address you entered. GPS is optional. · © OpenStreetMap contributors · Maps by OpenFreeMap · Powered by MapLibre</p>
     </section>
   </div>;
