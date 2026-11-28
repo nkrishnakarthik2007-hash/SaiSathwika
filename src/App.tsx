@@ -6,7 +6,6 @@ import { Browser } from '@capacitor/browser';
 import type { Session } from '@supabase/supabase-js';
 import { ArrowLeft, RefreshCw, ArrowRight, CheckCircle2, Clock3, IceCream, Leaf, MapPin, Milk, Search, ShieldCheck, ShoppingBag, UserRound, X, Minus, Plus, PackageCheck, LocateFixed, Home, Store, ClipboardList, LogOut, UserCircle2, ChevronRight } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
-import { AppUpdater } from './lib/app-updater';
 import { flushAppDiagnostics, installAppDiagnostics, recordAppDiagnostic } from './lib/diagnostics';
 import { getDeviceLocation } from './lib/location';
 
@@ -18,7 +17,6 @@ const MapPicker = lazy(() => import('./MapPicker'));
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
 type CustomerPage = 'home' | 'shop' | 'orders' | 'profile' | 'login' | 'updates';
-type AppUpdate = { tagName: string; apkUrl: string; releaseNotes: string; versionCode: number; sha256: string };
 
 const categoryIcons = [Milk, Leaf, IceCream, Milk];
 const fallbackCategories = ['Milk & Varieties', 'Curd & Buttermilk', 'Ice Creams', 'Butter, Ghee & Paneer'];
@@ -39,7 +37,6 @@ export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [installedAppVersion, setInstalledAppVersion] = useState('Checking…');
   const [installedBuild, setInstalledBuild] = useState('');
-  const [updateStatus, setUpdateStatus] = useState('Not checked yet');
   const [loading, setLoading] = useState(true);
   const [storeAccepting,setStoreAccepting]=useState<boolean|null>(null);
   const [deliveryRadius,setDeliveryRadius]=useState(2);
@@ -78,10 +75,6 @@ export default function App() {
   const [couponCode,setCouponCode]=useState('');
   const [appliedCoupon,setAppliedCoupon]=useState<{code:string;discount:number;subtotal:number;name:string}|null>(null);
   const [couponBusy,setCouponBusy]=useState(false);
-  const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
-  const [installingUpdate, setInstallingUpdate] = useState(false);
-  const [updateProgress, setUpdateProgress] = useState(0);
 
   async function generateDeliveryOtp(orderId: string) {
     if (!supabase) return;
@@ -92,64 +85,6 @@ export default function App() {
     setDeliveryOtpBusy(null);
   }
 
-  async function checkForUpdates() {
-    if (Capacitor.getPlatform() !== 'android') { setNotice('App updates are available from the Android app only.'); return; }
-    setCheckingUpdate(true);
-    try {
-      const [installed, response] = await Promise.all([
-        NativeApp.getInfo(),
-        fetch('https://api.github.com/repos/nkrishnakarthik2007-hash/SaiSathwika/releases?per_page=1', { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' }),
-      ]);
-      if (!response.ok) throw new Error('Could not check GitHub releases. Please try again.');
-      const releases = await response.json() as Array<{ tag_name: string; body?: string; assets?: Array<{ name: string; browser_download_url: string; digest?: string }> }>;
-      const latest = releases[0];
-      const apk = latest?.assets?.find(asset => asset.name.toLowerCase() === 'saisathwika.apk');
-      const latestVersionCode = Number(latest?.tag_name?.split('.').at(-1));
-      const installedVersionCode = Number(installed.build ?? 0);
-      setInstalledAppVersion(installed.version || 'Unknown');
-      setInstalledBuild(String(installed.build ?? ''));
-      if (!latest || !apk || !Number.isFinite(latestVersionCode)) throw new Error('The latest release does not contain a valid Android APK.');
-      if (latestVersionCode > installedVersionCode) {
-        setAppUpdate({ tagName: latest.tag_name, apkUrl: apk.browser_download_url, releaseNotes: latest.body ?? '', versionCode: latestVersionCode, sha256: apk.digest ?? '' });
-        setUpdateStatus('A new version is available: ' + latest.tag_name);
-        setNotice('A new version (' + latest.tag_name + ') is available.');
-      } else { setAppUpdate(null); setUpdateStatus('You are using the latest version.'); setNotice('You are using the latest Sai Sathwika version.'); }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not check for updates.';
-      recordAppDiagnostic('Update check failed: ' + message, error instanceof Error ? error.stack : null);
-      setNotice(message);
-    }
-    finally { setCheckingUpdate(false); }
-  }
-
-  async function startAppUpdate() {
-    if (!appUpdate || installingUpdate) return;
-    setInstallingUpdate(true);
-    setUpdateProgress(0);
-    let progressListener: { remove: () => Promise<void> } | undefined;
-    try {
-      progressListener = await AppUpdater.addListener('downloadProgress', (progress) => {
-        setUpdateProgress(Math.max(0, Math.min(100, progress.percent || 0)));
-      });
-      const result = await AppUpdater.downloadAndInstall({
-        url: appUpdate.apkUrl,
-        sha256: appUpdate.sha256,
-      });
-      recordAppDiagnostic('APK downloaded and handed to Android installer. Version code: ' + result.versionCode, null, 'warning');
-      setNotice('Update downloaded. Complete the installation in the Android installer.');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not download the update.';
-      recordAppDiagnostic('In-app update failed: ' + message, error instanceof Error ? error.stack : null);
-      if (message.includes('INSTALL_PERMISSION_REQUIRED')) {
-        setNotice('Allow Sai Sathwika to install apps in Android settings. Return here and tap Update again.');
-      } else {
-        setNotice(message);
-      }
-    } finally {
-      await progressListener?.remove().catch(() => undefined);
-      setInstallingUpdate(false);
-    }
-  }
 
   useEffect(() => { localStorage.setItem('sai-sathwika-last-page', customerPage); }, [customerPage]);
   useEffect(() => {
@@ -165,9 +100,6 @@ export default function App() {
     void NativeApp.getInfo().then(info => { setInstalledAppVersion(info.version || 'Unknown'); setInstalledBuild(String(info.build ?? '')); }).catch(() => setInstalledAppVersion('Unable to read version'));
   }, []);
 
-  useEffect(() => {
-    if (customerPage === 'updates' && Capacitor.getPlatform() === 'android') void checkForUpdates();
-  }, [customerPage]);
   useEffect(() => {
     let active = true;
     let revealTimer: number | undefined;
@@ -878,14 +810,9 @@ export default function App() {
 
     {customerPage === 'updates' && <section className="customer-page shell app-updates-page">
       <button className="login-back-button" onClick={() => navigateCustomerPage(session ? 'profile' : 'home')}><ArrowLeft size={17}/> Back</button>
-      <div className="customer-page-heading"><span className="eyebrow">APP SETTINGS</span><h1>App updates</h1><p>Check your installed version and get the latest Sai Sathwika improvements.</p></div>
+      <div className="customer-page-heading"><span className="eyebrow">APP SETTINGS</span><h1>App updates</h1><p>Check your installed version and keep Sai Sathwika up to date.</p></div>
       <section className="profile-content-card app-version-card"><div className="app-version-icon"><ShieldCheck size={25}/></div><div><span className="eyebrow">CURRENT VERSION</span><h2>Version {installedAppVersion}</h2><p>{installedBuild ? 'Build number '+installedBuild : 'Installed application version'}</p></div></section>
-      <section className="profile-content-card app-update-check-card"><span className="eyebrow">UPDATE STATUS</span><h2>{appUpdate ? 'An update is ready' : checkingUpdate ? 'Checking for updates…' : 'Stay up to date'}</h2><p>{updateStatus}</p>
-        {appUpdate && <div className="app-release-notes"><strong>Latest release: {appUpdate.tagName}</strong>{appUpdate.releaseNotes && <p>{appUpdate.releaseNotes}</p>}</div>}
-        <button className="primary app-update-action" onClick={appUpdate ? startAppUpdate : checkForUpdates} disabled={checkingUpdate || installingUpdate || Capacitor.getPlatform() !== 'android'}>{checkingUpdate ? 'Checking…' : installingUpdate ? 'Downloading '+updateProgress+'%' : appUpdate ? 'Download and install update' : 'Check for updates'}</button>
-        {installingUpdate && <div className="app-update-progress"><span style={{width:updateProgress+'%'}}/></div>}
-        {Capacitor.getPlatform() !== 'android' && <small>In-app APK updates are available in the Android app.</small>}
-      </section>
+      <section className="profile-content-card app-update-check-card"><span className="eyebrow">SAFE APP UPDATES</span><h2>Updates through Google Play</h2><p>We are preparing the official Google Play release. Once published, Android will deliver updates through Google Play's trusted installer. Sai Sathwika does not need permission to install other apps.</p><p className="admin-hint">This preview version is currently distributed outside Google Play. Android may show additional safety checks for apps installed from outside the Play Store.</p></section>
     </section>}
 
     {customerPage !== 'login' && <nav className="mobile-store-nav" aria-label="Mobile store navigation">
