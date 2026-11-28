@@ -806,3 +806,7 @@ button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
 @media(max-width:600px){.stock-day-summary{gap:7px}.stock-day-summary article{padding:10px}.stock-day-summary strong{font-size:19px}.stock-day-summary span{font-size:9px}.stock-actions{flex-wrap:wrap}}
 
 .profile-add-address-trigger{display:inline-flex;align-items:center;gap:6px;border:1px solid #cfe2ca;border-radius:22px;background:#f3f9ef;color:#26733c;padding:9px 12px;font:700 11px 'DM Sans';cursor:pointer}
+
+.admin-customer-dock{z-index:60}
+.admin-customer-dock .mobile-admin-nav.active{background:#eaf5e7;color:#176b35;border-radius:14px}
+@media(max-width:700px){.admin-page{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}.admin-customer-dock{padding-bottom:env(safe-area-inset-bottom,0px)}}
