@@ -16,7 +16,7 @@ alter table public.inventory_movements enable row level security;
 grant select on public.inventory_movements to authenticated;
 drop policy if exists "Admins read inventory movements" on public.inventory_movements;
 create policy "Admins read inventory movements" on public.inventory_movements
-  for select to authenticated using (public.is_admin());
+  for select to authenticated using (private.is_admin());
 
 create or replace function public.log_product_stock_movement()
 returns trigger language plpgsql security definer set search_path=public
@@ -49,7 +49,7 @@ returns integer language plpgsql security invoker set search_path=public
 as $$
 declare v_new_stock integer;
 begin
-  if not public.is_admin() then raise exception 'Only store admins can receive stock'; end if;
+  if not private.is_admin() then raise exception 'Only store admins can receive stock'; end if;
   if p_quantity is null or p_quantity<1 or p_quantity>100000 then raise exception 'Enter a stock quantity between 1 and 100000'; end if;
   perform set_config('app.inventory_note',coalesce(nullif(trim(p_note),''),'New stock received'),true);
   update public.products set stock_quantity=stock_quantity+p_quantity,is_available=true,updated_at=now()
