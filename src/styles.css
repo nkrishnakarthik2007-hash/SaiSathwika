@@ -804,3 +804,5 @@ button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
 .stock-receive-input{width:94px;min-width:80px;border:1px solid #dfe8dc;border-radius:8px;padding:8px;font:11px 'DM Sans';color:#294d31;background:#fff}
 .stock-actions button{white-space:nowrap}
 @media(max-width:600px){.stock-day-summary{gap:7px}.stock-day-summary article{padding:10px}.stock-day-summary strong{font-size:19px}.stock-day-summary span{font-size:9px}.stock-actions{flex-wrap:wrap}}
+
+.profile-add-address-trigger{display:inline-flex;align-items:center;gap:6px;border:1px solid #cfe2ca;border-radius:22px;background:#f3f9ef;color:#26733c;padding:9px 12px;font:700 11px 'DM Sans';cursor:pointer}
