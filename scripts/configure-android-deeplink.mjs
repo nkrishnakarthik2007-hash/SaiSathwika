@@ -32,6 +32,7 @@ if (missingLocationPermissions.length > 0) {
   const insertAt = manifestOpen.index + manifestOpen[0].length;
   manifest = manifest.slice(0, insertAt) + '\n' + permissionXml + manifest.slice(insertAt);
 }
+
 const mainActivityPath = javaRoot + '/MainActivity.java';
 const mainActivity = await read(mainActivityPath);
 const packageName = mainActivity.match(/^package\s+([\w.]+);/m)?.[1];
@@ -39,9 +40,14 @@ if (!packageName || packageName !== appId) {
   throw new Error('Expected MainActivity package ' + appId + ', found ' + (packageName || 'none') + '.');
 }
 
+await mkdir(javaRoot, { recursive: true });
+const pluginTemplate = await read('scripts/android/AppUpdaterPlugin.java');
+const receiverTemplate = await read('scripts/android/UpdateInstallReceiver.java');
+await writeFile(javaRoot + '/AppUpdaterPlugin.java', pluginTemplate.replaceAll('__APP_PACKAGE__', packageName), 'utf8');
+await writeFile(javaRoot + '/UpdateInstallReceiver.java', receiverTemplate.replaceAll('__APP_PACKAGE__', packageName), 'utf8');
+
 const activitySource = 'package ' + packageName + ';\n\n' +
   'import android.graphics.Color;\n' +
-  'import android.graphics.drawable.ColorDrawable;\n' +
   'import android.os.Build;\n' +
   'import android.os.Bundle;\n' +
   'import android.view.View;\n' +
@@ -52,14 +58,12 @@ const activitySource = 'package ' + packageName + ';\n\n' +
   'public class MainActivity extends BridgeActivity {\n' +
   '    @Override\n' +
   '    public void onCreate(Bundle savedInstanceState) {\n' +
-  '        getWindow().setBackgroundDrawable(new ColorDrawable(Color.rgb(255, 253, 247)));\n' +
+  '        registerPlugin(AppUpdaterPlugin.class);\n' +
   '        super.onCreate(savedInstanceState);\n' +
   '        getWindow().setStatusBarColor(Color.TRANSPARENT);\n' +
-  '        getWindow().setNavigationBarColor(Color.rgb(255, 253, 247));\n' +
   '        applyStatusBarMode();\n' +
-  '        if (getBridge() != null && getBridge().getWebView() != null) {\n' +
-  '            getBridge().getWebView().setBackgroundColor(Color.rgb(255, 253, 247));\n' +
-  '            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) getBridge().getWebView().getSettings().setForceDark(WebSettings.FORCE_DARK_OFF);\n' +
+  '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && getBridge() != null && getBridge().getWebView() != null) {\n' +
+  '            getBridge().getWebView().getSettings().setForceDark(WebSettings.FORCE_DARK_OFF);\n' +
   '        }\n' +
   '    }\n' +
   '    private void applyStatusBarMode() {\n' +
@@ -81,6 +85,15 @@ const activitySource = 'package ' + packageName + ';\n\n' +
   '}\n';
 await writeFile(mainActivityPath, activitySource, 'utf8');
 
+if (!manifest.includes('android.permission.REQUEST_INSTALL_PACKAGES')) {
+  const manifestOpen = manifest.match(/<manifest\b[^>]*>/);
+  if (!manifestOpen || manifestOpen.index === undefined) throw new Error('Could not find the opening manifest tag.');
+  const insertion = manifestOpen.index + manifestOpen[0].length;
+  manifest = manifest.slice(0, insertion) +
+    '\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />' +
+    manifest.slice(insertion);
+}
+
 const activityTags = [...manifest.matchAll(/<activity\b[^>]*>/g)];
 const mainActivityTag = activityTags.find((match) => /android:name=["'][^"']*MainActivity["']/.test(match[0]));
 if (!mainActivityTag || mainActivityTag.index === undefined) {
@@ -100,5 +113,12 @@ if (!manifest.includes('android:scheme="' + scheme + '"') || !manifest.includes(
   manifest = manifest.slice(0, activityClose) + deepLinkFilter + manifest.slice(activityClose);
 }
 
+if (!manifest.includes('android:name=".UpdateInstallReceiver"')) {
+  const applicationClose = manifest.lastIndexOf('</application>');
+  if (applicationClose < 0) throw new Error('Could not find the closing application tag.');
+  const receiver = '\n        <receiver android:name=".UpdateInstallReceiver" android:enabled="true" android:exported="false" />';
+  manifest = manifest.slice(0, applicationClose) + receiver + manifest.slice(applicationClose);
+}
+
 await writeFile(manifestPath, manifest, 'utf8');
-console.log('Configured OAuth deep link and Android foreground location permissions. Runtime permission is still requested only when the customer taps the location button. No background-location or app-install permission is included.');
+console.log('Configured OAuth deep link, native APK updater, package installer receiver and install permission.');

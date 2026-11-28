@@ -122,11 +122,11 @@ jobs:
             echo "::error::Could not locate the merged release Android manifest for the security audit."
             exit 1
           fi
-          if grep -nH 'android.permission.REQUEST_INSTALL_PACKAGES' "${MANIFESTS[@]}"; then
-            echo "::error::Sai Sathwika must not request permission to install other applications."
+          if ! grep -qH 'android.permission.REQUEST_INSTALL_PACKAGES' "${MANIFESTS[@]}"; then
+            echo "::error::The in-app updater requires REQUEST_INSTALL_PACKAGES in the release manifest."
             exit 1
           fi
-          echo "PASS: no REQUEST_INSTALL_PACKAGES permission in release manifests."
+          echo "PASS: in-app update installation permission is declared."
           APK_SIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           if [ -z "$APK_SIGNER" ]; then echo "::error::Android apksigner was not found."; exit 1; fi
           "$APK_SIGNER" verify --verbose --print-certs SaiSathwika.apk | tee diagnostics/apk-signature-verification.txt
