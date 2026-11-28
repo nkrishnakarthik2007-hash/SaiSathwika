@@ -609,7 +609,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   </article>)}</div>}
 </section>}
       {activeTab==='promotions'&&<section className="admin-card admin-promotions-page">
-  <div className="admin-section-heading"><div><span className="eyebrow">CUSTOMER CAMPAIGNS</span><h2><Percent/> Promotions & offers</h2><p>Create simple offers customers can use at checkout. New coupons stay as drafts until you activate them.</p></div><button type="button" className="admin-add-product-trigger" onClick={()=>setPromotionModalOpen(true)}><Plus size={17}/> Create offer</button></div>
+  <div className="admin-section-heading"><div><span className="eyebrow">CUSTOMER CAMPAIGNS</span><h2><Percent/> Promotions & offers</h2><p>Create simple offers customers can use at checkout. New coupons stay as drafts until you activate them.</p></div><button type="button" className="admin-add-product-trigger" onClick={()=>setPromotionModalOpen(true)}><PackagePlus size={17}/> Create offer</button></div>
   <div className="promotion-dashboard-stats">
     <article><span>Active offers</span><strong>{promotions.filter(p=>p.is_active).length}</strong><small>Visible and available to customers</small></article>
     <article><span>Draft offers</span><strong>{promotions.filter(p=>!p.is_active).length}</strong><small>Ready for your review</small></article>
