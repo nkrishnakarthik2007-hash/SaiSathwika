@@ -12,6 +12,7 @@ import { flushAppDiagnostics, installAppDiagnostics, recordAppDiagnostic } from 
 installAppDiagnostics();
 import AdminDashboard from './AdminDashboard';
 import DeliveryDashboard from './DeliveryDashboard';
+import MapPicker from './MapPicker';
 
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
@@ -41,6 +42,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [storeAccepting,setStoreAccepting]=useState<boolean|null>(null);
   const [deliveryRadius,setDeliveryRadius]=useState(2);
+  const [storeCoordinates,setStoreCoordinates]=useState<{latitude:number;longitude:number}|null>(null);
+  const [addressMapOpen,setAddressMapOpen]=useState(false);
+  const [newAddressLabel,setNewAddressLabel]=useState('Home');
+  const [savingAddress,setSavingAddress]=useState(false);
   const [notice, setNotice] = useState('');
   const [adminRole, setAdminRole] = useState('customer');
   const [adminView, setAdminView] = useState(() => localStorage.getItem('sai-sathwika-admin-view') === '1');
@@ -365,12 +370,12 @@ export default function App() {
     Promise.all([
       supabase.from('products').select('id,category_id,name,price,mrp,stock_quantity,image_urls,variant_label,unit,brands(name)').eq('is_available', true).gt('stock_quantity', 0).order('sort_order'),
       supabase.from('categories').select('id,name').eq('is_active', true).order('sort_order'),
-      supabase.from('store_settings').select('accepting_orders,delivery_radius_km').eq('id',1).maybeSingle(),
+      supabase.from('store_settings').select('accepting_orders,delivery_radius_km,store_latitude,store_longitude').eq('id',1).maybeSingle(),
     ]).then(([productResult, categoryResult, storeResult]) => {
       if (!alive) return;
       if (!productResult.error) setProducts((productResult.data ?? []) as Product[]);
       if (!categoryResult.error) setCategories(categoryResult.data ?? []);
-      if (!storeResult.error) { setStoreAccepting(storeResult.data?.accepting_orders ?? false); setDeliveryRadius(Number(storeResult.data?.delivery_radius_km ?? 2)); }
+      if (!storeResult.error) { setStoreAccepting(storeResult.data?.accepting_orders ?? false); setDeliveryRadius(Number(storeResult.data?.delivery_radius_km ?? 2)); setStoreCoordinates(storeResult.data?.store_latitude!=null&&storeResult.data?.store_longitude!=null?{latitude:Number(storeResult.data.store_latitude),longitude:Number(storeResult.data.store_longitude)}:null); }
     }).catch((error) => {
       recordAppDiagnostic('Store data loading failed: ' + String(error));
     }).finally(() => {
@@ -602,6 +607,35 @@ export default function App() {
     },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
   }
 
+  function openAddressMap() {
+    if (!navigator.geolocation) { setNotice('Location is not supported on this device.'); return; }
+    setLocationBusy(true);
+    navigator.geolocation.getCurrentPosition(pos => {
+      const point={latitude:pos.coords.latitude,longitude:pos.coords.longitude};
+      setCoords(point); setLocationBusy(false); setAddressMapOpen(true);
+    },err=>{setLocationBusy(false);setNotice(err.code===1?'Please allow location access to choose your address on the map.':'Could not get your GPS location. Try again.');},{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+  }
+
+  async function saveProfileAddress() {
+    if(!supabase||!session)return;
+    if(!address.recipient_name.trim()||!address.phone.trim()||!address.address_line.trim()||!coords){setNotice('Enter your name, phone, address and choose a GPS location.');return;}
+    setSavingAddress(true);
+    try {
+      const {data,error}=await supabase.from('customer_addresses').insert({customer_id:session.user.id,label:newAddressLabel.trim()||'Home',recipient_name:address.recipient_name.trim(),phone:address.phone.trim(),address_line:address.address_line.trim(),landmark:address.landmark.trim()||null,latitude:coords.latitude,longitude:coords.longitude,is_default:customerAddresses.length===0}).select('id,label,recipient_name,phone,address_line,landmark,latitude,longitude,is_default').single();
+      if(error)throw error;
+      setCustomerAddresses(current=>[data,...current]);setSelectedAddressId(data.id);setNotice('Delivery address saved.');
+      setAddressMapOpen(false);setNewAddressLabel('Home');
+    } catch(error) {setNotice(error instanceof Error?error.message:'Could not save this address.');}
+    finally {setSavingAddress(false);}
+  }
+
+  function openShopDirections() {
+    if(!storeCoordinates){setNotice('The store location has not been added yet. Please contact the store.');return;}
+    const destination=storeCoordinates.latitude+','+storeCoordinates.longitude;
+    const url='https://www.google.com/maps/dir/?api=1&origin=My%20Location&destination='+encodeURIComponent(destination)+'&travelmode=driving';
+    window.location.href=url;
+  }
+
   function selectSavedAddress(id: string) {
     setSelectedAddressId(id);
     if (id === '__new__') {
@@ -757,12 +791,13 @@ export default function App() {
         <button className={customerPage === 'orders' ? 'active' : ''} onClick={() => navigateCustomerPage('orders')}>My orders</button>
       </nav>
       <div className="header-actions">
-        {['admin','owner','super_admin'].includes(adminRole) && <button className="account admin-shortcut" onClick={()=>setAdminView(true)} aria-label="Open admin panel"><ShieldCheck size={17}/> Admin Panel</button>}
+        <button className="header-update-shortcut" onClick={() => navigateCustomerPage('updates')} aria-label="App updates"><RefreshCw size={17}/><span>Updates</span></button>
+        {['admin','owner','super_admin'].includes(adminRole) && <button className="account admin-shortcut" onClick={()=>setAdminView(true)} aria-label="Open admin"><ShieldCheck size={17}/><span>Admin</span></button>}
         <button className="profile-trigger" aria-label={session ? 'Open my profile' : 'Sign in'} onClick={() => session ? navigateCustomerPage('profile') : setCustomerPage('login')}>
           {session?.user.user_metadata?.avatar_url || session?.user.user_metadata?.picture
             ? <img src={session.user.user_metadata.avatar_url || session.user.user_metadata.picture} alt="" referrerPolicy="no-referrer"/>
             : <UserRound size={19}/>}
-          <span>{session ? 'Profile' : 'Sign in'}</span>
+          <span>{session && ['admin','owner','super_admin'].includes(adminRole) ? 'Admin' : session ? 'Profile' : 'Sign in'}</span>
         </button>
         <button className="cart" onClick={() => setCartOpen(true)} aria-label={'Open cart with ' + cartCount + ' items'}><ShoppingBag size={19}/> Cart <b>{cartCount}</b></button>
       </div>
@@ -774,7 +809,7 @@ export default function App() {
         <span className="eyebrow"><span className="dot"/> YOUR NEIGHBOURHOOD DAIRY STORE</span>
         <h1>Goodness that<br/><em>comes to you.</em></h1>
         <p>Your daily dairy favourites, ice creams and more — fresh from Sai Sathwika to your doorstep.</p>
-        <div className="hero-actions"><button className="primary" onClick={() => navigateCustomerPage('shop')}>Explore products <ArrowRight size={17}/></button><span><ShieldCheck size={17}/> Local. Fresh. Convenient.</span></div>
+        <div className="hero-actions"><button className="primary" onClick={() => navigateCustomerPage('shop')}>Explore products <ArrowRight size={17}/></button><button className="go-to-shop-button" onClick={openShopDirections}><MapPin size={16}/> Go to shop</button><span><ShieldCheck size={17}/> Local. Fresh. Convenient.</span></div>
       </div>
       <div className="hero-art"><div className="sun"></div><div className="leaf leaf-one"></div><div className="leaf leaf-two"></div><div className="milk-pack"><span>Heritage</span><strong>Fresh<br/>Milk</strong><small>PURE DAIRY GOODNESS</small></div><div className="curd-pot"><span>✳</span><strong>Curd</strong></div><div className="ice-cream">🍦</div><div className="art-caption">A little freshness, every day.</div></div>
     </section>
@@ -830,7 +865,8 @@ export default function App() {
       </section>
       <div className="profile-content-grid">
         <section className="profile-content-card"><div className="profile-card-heading"><div><span className="eyebrow">DELIVERY DETAILS</span><h2>Saved addresses</h2></div><MapPin size={20}/></div>
-          {profileLoading ? <p className="profile-muted">Loading saved addresses…</p> : customerAddresses.length === 0 ? <p className="profile-muted">Your saved delivery addresses will appear here after your first order.</p> : customerAddresses.map(saved => <article className="saved-address" key={saved.id}><div><strong>{saved.label || 'Delivery address'} {saved.is_default && <span className="default-address-pill">Default</span>}</strong><p>{saved.recipient_name} · {saved.phone}</p><small>{saved.address_line}{saved.landmark ? ', ' + saved.landmark : ''}</small><small>{typeof saved.latitude === 'number' && typeof saved.longitude === 'number' ? 'GPS location saved' : 'GPS location not saved'}</small></div></article>)}
+          {profileLoading ? <p className="profile-muted">Loading saved addresses…</p> : customerAddresses.length === 0 ? <p className="profile-muted">No saved addresses yet. Add your delivery address and choose its location on the map.</p> : customerAddresses.map(saved => <article className="saved-address" key={saved.id}><div><strong>{saved.label || 'Delivery address'} {saved.is_default && <span className="default-address-pill">Default</span>}</strong><p>{saved.recipient_name} · {saved.phone}</p><small>{saved.address_line}{saved.landmark ? ', ' + saved.landmark : ''}</small><small>{typeof saved.latitude === 'number' && typeof saved.longitude === 'number' ? 'GPS location saved' : 'GPS location not saved'}</small><button type="button" className="saved-address-select" onClick={()=>selectSavedAddress(saved.id)}>Use this address</button></div></article>)}
+          <div className="profile-add-address"><h3>Add a delivery address</h3><label>Address name<input value={newAddressLabel} onChange={e=>setNewAddressLabel(e.target.value)} placeholder="Home / Work"/></label><label>Your name<input value={address.recipient_name} onChange={e=>setAddress(a=>({...a,recipient_name:e.target.value}))} placeholder="Recipient name"/></label><label>Phone number<input value={address.phone} onChange={e=>setAddress(a=>({...a,phone:e.target.value}))} inputMode="tel" placeholder="10-digit mobile number"/></label><label>Full address<input value={address.address_line} onChange={e=>setAddress(a=>({...a,address_line:e.target.value}))} placeholder="House, street, area"/></label><label>Landmark (optional)<input value={address.landmark} onChange={e=>setAddress(a=>({...a,landmark:e.target.value}))} placeholder="Nearby landmark"/></label><button type="button" className="location-button" onClick={openAddressMap} disabled={locationBusy}><LocateFixed size={17}/>{locationBusy?'Getting GPS location…':coords?'GPS captured · Choose / adjust on map':'Allow GPS & choose location on map'}</button>{coords&&<small className="checkout-footnote">GPS: {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}</small>}<button type="button" className="place-order-button" onClick={()=>void saveProfileAddress()} disabled={savingAddress}>{savingAddress?'Saving address…':'Save delivery address'}</button></div>
         </section>
         <section className="profile-content-card profile-quick-actions"><div className="profile-card-heading"><div><span className="eyebrow">QUICK ACCESS</span><h2>Your shopping</h2></div><ShoppingBag size={20}/></div>
           <button onClick={() => navigateCustomerPage('orders')}><PackageCheck size={17}/> View my orders <ChevronRight size={16}/></button>
@@ -907,6 +943,7 @@ export default function App() {
       </div>
     </section>}
 
+    {addressMapOpen && coords && <MapPicker initial={coords} onClose={()=>setAddressMapOpen(false)} onConfirm={point=>{setCoords(point);setAddressMapOpen(false);setNotice('Map location selected. Enter your house and street details, then save.');}}/>}
     {notice && <div className="notice" role="status"><CheckCircle2 size={17}/>{notice}<button onClick={() => setNotice('')}><X size={16}/></button></div>}
   </main>;
 }
