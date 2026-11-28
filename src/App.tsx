@@ -168,54 +168,40 @@ export default function App() {
   useEffect(() => {
     if (customerPage === 'updates' && Capacitor.getPlatform() === 'android') void checkForUpdates();
   }, [customerPage]);
-  const [bootFailsafeElapsed, setBootFailsafeElapsed] = useState(false);
-
-  useEffect(() => {
-    const failsafe = window.setTimeout(() => setBootFailsafeElapsed(true), 4500);
-    return () => window.clearTimeout(failsafe);
-  }, []);
-
   useEffect(() => {
     let active = true;
     let revealTimer: number | undefined;
     let removeTimer: number | undefined;
-    const bootStartedAt = Number(document.body.dataset.bootStartedAt || Date.now());
     const bootScreen = document.getElementById('app-boot-screen');
-    const appDataReady = !supabase || sessionResolved;
 
-    // Never uncover a blank React root. Wait for the first usable app state,
-    // with a failsafe for slow or unavailable networks.
-    if (!appDataReady && !bootFailsafeElapsed) return;
-
+    // Reveal the first app frame quickly. Authentication and catalogue requests
+    // continue in the background and must not hold the launch screen open.
     const revealRenderedApp = () => {
       if (!active) return;
       document.body.dataset.appReady = 'true';
       bootScreen?.classList.add('app-boot-screen-hidden');
-      removeTimer = window.setTimeout(() => bootScreen?.remove(), 460);
+      removeTimer = window.setTimeout(() => bootScreen?.remove(), 280);
     };
-
     const reveal = () => {
       if (!active) return;
       if (Capacitor.isNativePlatform()) {
-        void SplashScreen.hide({ fadeOutDuration: 500 })
-          .then(() => window.requestAnimationFrame(revealRenderedApp))
+        void SplashScreen.hide({ fadeOutDuration: 220 })
+          .then(() => window.requestAnimationFrame(() => window.requestAnimationFrame(revealRenderedApp)))
           .catch((error) => {
             recordAppDiagnostic('Native splash handoff failed: ' + String(error));
             revealRenderedApp();
           });
       } else {
-        revealRenderedApp();
+        window.requestAnimationFrame(revealRenderedApp);
       }
     };
-
-    const remaining = Math.max(0, 900 - (Date.now() - bootStartedAt));
-    revealTimer = window.setTimeout(reveal, remaining);
+    revealTimer = window.setTimeout(reveal, 420);
     return () => {
       active = false;
       if (revealTimer !== undefined) window.clearTimeout(revealTimer);
       if (removeTimer !== undefined) window.clearTimeout(removeTimer);
     };
-  }, [loading, sessionResolved, bootFailsafeElapsed]);
+  }, []);
 
   useEffect(() => {
     try { localStorage.setItem('sai-sathwika-cart',JSON.stringify(cart)); } catch { /* storage may be unavailable */ }
