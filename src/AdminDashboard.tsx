@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X, LayoutDashboard, Users, Percent, Activity, ShoppingBag, RefreshCw, TrendingUp, Truck, LogOut, ChevronRight, UserPlus, Mail, BookOpen, Search, Navigation, Home, MoreHorizontal, Bell, ChartNoAxesCombined, Warehouse, MapPinned, TicketPercent, Settings, Phone, Clock3, CircleDollarSign, Package, Menu } from 'lucide-react';
+import { ImagePlus, PackagePlus, Tags, Store, ArrowLeft, Save, ShieldCheck, LocateFixed, ClipboardList, Pencil, X, LayoutDashboard, Users, Percent, Activity, ShoppingBag, RefreshCw, TrendingUp, Truck, LogOut, ChevronRight, UserPlus, Mail, Search, Navigation, Home, MoreHorizontal, Bell, ChartNoAxesCombined, Warehouse, MapPinned, TicketPercent, Settings, Phone, Clock3, CircleDollarSign, Package, Menu } from 'lucide-react';
 import { supabase } from './lib/supabase';
 const MapPicker = lazy(() => import('./MapPicker'));
 
