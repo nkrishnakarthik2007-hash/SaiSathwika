@@ -625,7 +625,7 @@ export default function App() {
       const {data,error}=await supabase.from('customer_addresses').insert({customer_id:session.user.id,label:newAddressLabel.trim()||'Home',recipient_name:address.recipient_name.trim(),phone:address.phone.trim(),address_line:address.address_line.trim(),landmark:address.landmark.trim()||null,latitude:coords.latitude,longitude:coords.longitude,is_default:customerAddresses.length===0}).select('id,label,recipient_name,phone,address_line,landmark,latitude,longitude,is_default').single();
       if(error)throw error;
       setCustomerAddresses(current=>[data,...current]);setSelectedAddressId(data.id);setNotice('Delivery address saved.');
-      setAddressMapOpen(false);setNewAddressLabel('Home');
+      setAddressMapOpen(false);setNewAddressLabel('Home');setShowAddressForm(false);
     } catch(error) {setNotice(error instanceof Error?error.message:'Could not save this address.');}
     finally {setSavingAddress(false);}
   }
