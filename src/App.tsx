@@ -102,12 +102,13 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    let revealTimer: number | undefined;
+    let firstFrame = 0;
+    let secondFrame = 0;
     let removeTimer: number | undefined;
     const bootScreen = document.getElementById('app-boot-screen');
 
-    // Reveal the first app frame quickly. Authentication and catalogue requests
-    // continue in the background and must not hold the launch screen open.
+    // The React screen has already committed before this effect runs. Wait for
+    // two paint frames, then hand off the native splash without an extra delay.
     const revealRenderedApp = () => {
       if (!active) return;
       document.body.dataset.appReady = 'true';
@@ -117,20 +118,29 @@ export default function App() {
     const reveal = () => {
       if (!active) return;
       if (Capacitor.isNativePlatform()) {
-        void SplashScreen.hide({ fadeOutDuration: 220 })
-          .then(() => window.requestAnimationFrame(() => window.requestAnimationFrame(revealRenderedApp)))
+        void SplashScreen.hide({ fadeOutDuration: 180 })
+          .then(() => {
+            firstFrame = window.requestAnimationFrame(() => {
+              secondFrame = window.requestAnimationFrame(revealRenderedApp);
+            });
+          })
           .catch((error) => {
             recordAppDiagnostic('Native splash handoff failed: ' + String(error));
             revealRenderedApp();
           });
       } else {
-        window.requestAnimationFrame(revealRenderedApp);
+        firstFrame = window.requestAnimationFrame(() => {
+          secondFrame = window.requestAnimationFrame(revealRenderedApp);
+        });
       }
     };
-    revealTimer = window.setTimeout(reveal, 420);
+    firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(reveal);
+    });
     return () => {
       active = false;
-      if (revealTimer !== undefined) window.clearTimeout(revealTimer);
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
       if (removeTimer !== undefined) window.clearTimeout(removeTimer);
     };
   }, []);
