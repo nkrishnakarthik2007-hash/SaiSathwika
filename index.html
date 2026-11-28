@@ -11,12 +11,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <title>Sai Sathwika | Freshness at Your Doorstep</title>
   <style>
-    html,body{margin:0;min-height:100%;background:#fffdf7}body{min-height:100dvh}#root{min-height:100dvh}
+    html,body{margin:0;min-height:100%;background:#fffdf7!important;color:#244b30}html{background-color:#fffdf7}body{min-height:100dvh;background:#fffdf7!important;overscroll-behavior-y:none}#root{min-height:100dvh;background:#fffdf7;isolation:isolate}
     #root{min-height:100vh}
     #app-boot-screen{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 50% 42%,#ffffff 0%,#f1f7e9 52%,#e5f0dd 100%);color:#19472d;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;opacity:1;transition:opacity .46s cubic-bezier(.22,.75,.25,1);padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
     #app-boot-screen:before,#app-boot-screen:after{content:"";position:absolute;width:min(86vw,520px);aspect-ratio:1;border:1px solid #2e7d4620;border-radius:50%;pointer-events:none}
     #app-boot-screen:after{width:min(68vw,400px);border-color:#2e7d4618}
-    #app-boot-screen .boot-logo{position:relative;width:92px;height:92px;filter:drop-shadow(0 14px 28px #52734a24);animation:none}
+    #app-boot-screen .boot-logo{position:relative;width:86px;height:86px;filter:drop-shadow(0 14px 28px #52734a24);animation:none}
     #app-boot-screen .boot-name{position:relative;margin-top:25px;color:#19472d;font-family:Georgia,serif;font-weight:700;font-size:31px;letter-spacing:.01em}
     #app-boot-screen .boot-tagline{position:relative;margin-top:9px;font-size:9px;font-weight:700;letter-spacing:.24em;color:#64836a}
     #app-boot-screen .boot-track{position:relative;width:112px;height:3px;margin-top:34px;overflow:hidden;border-radius:9px;background:#dce9d8}
@@ -29,8 +29,8 @@
     @keyframes boot-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
     @keyframes boot-progress{0%{transform:translateX(-115%)}100%{transform:translateX(290%)}}
     @media(prefers-reduced-motion:reduce){#app-boot-screen .boot-logo,#app-boot-screen .boot-track span{animation:none}}
-    #app-boot-screen:before,#app-boot-screen:after{display:none}#app-boot-screen .boot-name,#app-boot-screen .boot-tagline,#app-boot-screen .boot-track,#app-boot-screen .boot-caption,#app-boot-screen .boot-credit{display:none!important}
-    #app-boot-screen .boot-credit{position:absolute;bottom:max(58px,calc(env(safe-area-inset-bottom) + 58px));display:grid;gap:5px;text-align:center;font-size:10px;color:#758a72;letter-spacing:.02em}
+    #app-boot-screen:before,#app-boot-screen:after{display:none}#app-boot-screen .boot-name,#app-boot-screen .boot-tagline,#app-boot-screen .boot-track,#app-boot-screen .boot-caption,#app-boot-screen .boot-credit{display:none!important}#app-boot-screen .boot-caption,#app-boot-screen .boot-name,#app-boot-screen .boot-tagline,#app-boot-screen .boot-track{display:none!important}
+    #app-boot-screen .boot-credit{display:none!important}
     #app-boot-screen .boot-credit strong{color:#28643a}
     #app-boot-screen .boot-credit span{font-size:9px;color:#94a08d}
   </style>
