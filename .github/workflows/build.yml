@@ -110,15 +110,25 @@ jobs:
           set -o pipefail
           ./gradlew bundleRelease --stacktrace 2>&1 | tee ../diagnostics/android-bundle-build.log
           cp app/build/outputs/bundle/release/app-release.aab ../SaiSathwika.aab
-      - name: Audit Android manifest for sensitive install permissions
+      - name: Audit Android manifest and release signatures
+        if: steps.signing-check.outputs.enabled == 'true'
         run: |
-          set -o pipefail
-          MANIFEST="android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml"
-          if [ -f "$MANIFEST" ] && grep -q 'android.permission.REQUEST_INSTALL_PACKAGES' "$MANIFEST"; then
+          set -euo pipefail
+          mapfile -t MANIFESTS < <(find android/app/build/intermediates -type f -name AndroidManifest.xml -path '*release*')
+          if [ "${#MANIFESTS[@]}" -eq 0 ]; then
+            echo "::error::Could not locate the merged release Android manifest for the security audit."
+            exit 1
+          fi
+          if grep -nH 'android.permission.REQUEST_INSTALL_PACKAGES' "${MANIFESTS[@]}"; then
             echo "::error::Sai Sathwika must not request permission to install other applications."
             exit 1
           fi
-          echo "No REQUEST_INSTALL_PACKAGES permission found in the merged release manifest."
+          echo "PASS: no REQUEST_INSTALL_PACKAGES permission in release manifests."
+          APK_SIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          if [ -z "$APK_SIGNER" ]; then echo "::error::Android apksigner was not found."; exit 1; fi
+          "$APK_SIGNER" verify --verbose --print-certs SaiSathwika.apk | tee diagnostics/apk-signature-verification.txt
+          jarsigner -verify -verbose -certs SaiSathwika.aab > diagnostics/aab-signature-verification.txt
+          echo "PASS: APK and Android App Bundle signatures verified."
       - name: Build debug APK (temporary testing only)
         if: steps.signing-check.outputs.enabled != 'true'
         working-directory: android
