@@ -633,13 +633,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   </article>)}</div>}
 </section>}
     </section>
-    <nav className="admin-mobile-nav" aria-label="Primary admin navigation">
-      <button type="button" className={activeTab==='overview'?'active':''} onClick={()=>setActiveTab('overview')}><Home size={19}/><span>Home</span></button>
-      <button type="button" className={activeTab==='orders'?'active':''} onClick={()=>setActiveTab('orders')}><ClipboardList size={19}/><span>Orders</span>{pendingOrders>0&&<i>{pendingOrders>9?'9+':pendingOrders}</i>}</button>
-      <button type="button" className={activeTab==='products'?'active':''} onClick={()=>setActiveTab('products')}><PackagePlus size={19}/><span>Products</span></button>
-      <button type="button" className={activeTab==='customers'?'active':''} onClick={()=>setActiveTab('customers')}><Users size={19}/><span>Customers</span></button>
-      <button type="button" className={activeTab==='more'||['delivery','mrp','promotions','store','diagnostics','team','reports'].includes(activeTab)?'active':''} onClick={()=>setActiveTab('more')}><MoreHorizontal size={20}/><span>More</span></button>
-    </nav>
+    </section>
   </main>;
 
 }
