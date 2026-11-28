@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Map as MapLibreMap, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { ArrowLeft, LocateFixed, Search, X } from 'lucide-react';
+import { ArrowLeft, LocateFixed, Search, X, Copy, Check, MapPinned } from 'lucide-react';
 import { getDeviceLocation } from './lib/location';
 
 setWorkerUrl(workerUrl);
@@ -22,6 +22,7 @@ export default function MapPicker({ initial, onConfirm, onClose }: {
   const [search, setSearch] = useState('');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
+  const [copied,setCopied]=useState(false);
 
   useEffect(() => {
     if (!container.current) return;
@@ -85,7 +86,7 @@ export default function MapPicker({ initial, onConfirm, onClose }: {
       </form>
       <div className="map-picker-canvas" ref={container}/>
       {error && <p className="map-picker-error">{error}</p>}
-      <div className="map-picker-bottom"><button className="map-locate" onClick={locateMe}><LocateFixed size={17}/> Use my location</button><div><small>PIN COORDINATES</small><span>{selected.latitude.toFixed(6)}, {selected.longitude.toFixed(6)}</span></div><button className="map-confirm" onClick={()=>onConfirm(point.current)}>Confirm location</button></div>
+      <div className="map-picker-bottom"><button className="map-locate" type="button" onClick={()=>void locateMe()}><LocateFixed size={17}/> Use my location</button><div className="map-pin-summary"><small><MapPinned size={13}/> PINNED LOCATION</small><span>{selected.latitude.toFixed(5)}, {selected.longitude.toFixed(5)}</span><button type="button" onClick={()=>{void navigator.clipboard?.writeText(selected.latitude.toFixed(6)+', '+selected.longitude.toFixed(6)).then(()=>setCopied(true)).catch(()=>setError('Could not copy coordinates.'));}}>{copied?<Check size={13}/>:<Copy size={13}/>} {copied?'Copied':'Copy coordinates'}</button></div><button className="map-confirm" type="button" onClick={()=>onConfirm(point.current)}>Confirm location</button></div>
       <p className="map-attribution">© OpenStreetMap contributors · Maps by OpenFreeMap · Powered by MapLibre</p>
     </section>
   </div>;
