@@ -810,3 +810,23 @@ button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
 .admin-customer-dock{z-index:60}
 .admin-customer-dock .mobile-admin-nav.active{background:#eaf5e7;color:#176b35;border-radius:14px}
 @media(max-width:700px){.admin-page{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}.admin-customer-dock{padding-bottom:env(safe-area-inset-bottom,0px)}}
+
+
+/* Admin section navigation: always visible, separate from the customer dock. */
+.admin-navigation{display:flex!important}
+@media(min-width:901px){
+  .admin-navigation{position:fixed!important;left:0;top:68px;bottom:0;width:232px;max-height:calc(100vh - 68px);overflow-y:auto;overflow-x:hidden;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;padding:18px 12px!important;gap:6px!important;z-index:85!important;border-radius:0!important;margin:0!important;background:rgba(255,255,255,.98)!important;border-right:1px solid #e5ecdf!important;border-bottom:0!important}
+  .admin-navigation button{width:100%!important;min-width:0!important;justify-content:flex-start!important;min-height:44px!important}
+  .admin-shell{margin-left:232px!important}
+}
+@media(max-width:900px){
+  .admin-navigation{position:sticky!important;top:60px!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%!important;height:auto!important;max-height:none!important;overflow-x:auto!important;overflow-y:hidden!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:6px!important;padding:9px 12px!important;margin:0!important;white-space:nowrap!important;background:rgba(255,255,255,.98)!important;border:0!important;border-bottom:1px solid #e5ecdf!important;border-radius:0!important;z-index:85!important;scrollbar-width:thin}
+  .admin-navigation button{display:flex!important;flex:0 0 auto!important;width:auto!important;min-width:max-content!important;min-height:40px!important;justify-content:center!important;padding:0 13px!important}
+  .admin-shell{margin:0!important;padding:20px 14px calc(104px + env(safe-area-inset-bottom,0px))!important}
+  .admin-page{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))!important}
+  .admin-customer-dock{position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:100!important;display:flex!important}
+}
+@media(max-width:390px){
+  .admin-navigation{gap:4px!important;padding:8px 8px!important}
+  .admin-navigation button{min-height:38px!important;padding:0 10px!important;font-size:10px!important}
+}
