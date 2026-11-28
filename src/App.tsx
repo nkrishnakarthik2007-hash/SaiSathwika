@@ -793,8 +793,7 @@ export default function App() {
       </nav>
       <div className="header-actions">
         <button className="header-update-shortcut" onClick={() => navigateCustomerPage('updates')} aria-label="App updates"><RefreshCw size={17}/><span>Updates</span></button>
-        {['admin','owner','super_admin'].includes(adminRole) && <button className="account admin-shortcut" onClick={()=>setAdminView(true)} aria-label="Open admin"><ShieldCheck size={17}/><span>Admin</span></button>}
-        <button className="profile-trigger" aria-label={session ? 'Open my profile' : 'Sign in'} onClick={() => session ? navigateCustomerPage('profile') : setCustomerPage('login')}>
+        <button className="profile-trigger" aria-label={session ? 'Open my profile' : 'Sign in'} onClick={() => session && ['admin','owner','super_admin'].includes(adminRole) ? setAdminView(true) : session ? navigateCustomerPage('profile') : setCustomerPage('login')}>
           {session?.user.user_metadata?.avatar_url || session?.user.user_metadata?.picture
             ? <img src={session.user.user_metadata.avatar_url || session.user.user_metadata.picture} alt="" referrerPolicy="no-referrer"/>
             : <UserRound size={19}/>}
