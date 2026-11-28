@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from './lib/supabase';
-import { CheckCircle2, Clock3, Navigation, Phone, RefreshCw, Truck, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Clock3, Navigation, Phone, RefreshCw, Truck, ShieldCheck, MapPinned } from 'lucide-react';
 
 type DeliveryOrder = {
   id: string;
@@ -71,6 +71,16 @@ export default function DeliveryDashboard({ onSignOut }: { onSignOut: () => void
     await refresh(); setBusyOrder(null);
   }
 
+  function openOpenStreetMap(order: DeliveryOrder) {
+    const address = order.delivery_address_snapshot;
+    if (typeof address.latitude !== 'number' || typeof address.longitude !== 'number') {
+      setMessage('This order has no saved map coordinates. Use the written address or contact the customer.');
+      return;
+    }
+    const { latitude, longitude } = address;
+    window.open('https://www.openstreetmap.org/?mlat=' + latitude + '&mlon=' + longitude + '#map=18/' + latitude + '/' + longitude, '_blank', 'noopener,noreferrer');
+  }
+
   function openNavigation(order: DeliveryOrder) {
     const address = order.delivery_address_snapshot;
     const destination = typeof address.latitude === 'number' && typeof address.longitude === 'number'
@@ -106,7 +116,8 @@ export default function DeliveryDashboard({ onSignOut }: { onSignOut: () => void
             <div className="delivery-order-footer"><div className="delivery-amount"><strong>₹{Number(order.total).toFixed(2)}</strong><span className={'delivery-payment '+(order.payment_status==='paid'?'paid':'pending')}><span>{order.payment_status==='paid'?'Paid':order.payment_method==='cash_on_delivery'?'Collect cash':'Payment pending'}</span><small>{order.payment_method==='cash_on_delivery'?'Cash on delivery':order.payment_method==='online'?'Online payment':'Payment method unavailable'}</small></span></div><span>{new Date(order.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span></div>
             <div className="delivery-actions">
               {phone && <a href={'tel:'+phone}><Phone size={16}/> Call customer</a>}
-              <button type="button" onClick={() => openNavigation(order)}><Navigation size={16}/> Navigate</button>
+              {typeof address.latitude === 'number' && typeof address.longitude === 'number' && <button type="button" onClick={() => openOpenStreetMap(order)}><MapPinned size={16}/> View pin on OpenStreetMap</button>}
+              <button type="button" onClick={() => openNavigation(order)}><Navigation size={16}/> Open in Google Maps</button>
               {order.status === 'ready_for_dispatch' && <button className="delivery-primary" type="button" disabled={busyOrder===order.id} onClick={() => void runAction(order,'start_assigned_delivery')}>{busyOrder===order.id?'Starting…':'Start delivery'}</button>}
               {order.status === 'out_for_delivery' && <div className="delivery-otp-verify"><label htmlFor={'delivery-otp-'+order.id}>Customer delivery OTP</label><input id={'delivery-otp-'+order.id} inputMode="numeric" maxLength={6} placeholder="6-digit code" value={otpByOrder[order.id] ?? ''} onChange={event => setOtpByOrder(current => ({...current,[order.id]:event.target.value.replace(/\D/g,'').slice(0,6)}))}/><button className="delivery-primary" type="button" disabled={busyOrder===order.id} onClick={() => void verifyOtp(order)}><CheckCircle2 size={16}/>{busyOrder===order.id?'Verifying…':'Verify & deliver'}</button></div>}
             </div>
