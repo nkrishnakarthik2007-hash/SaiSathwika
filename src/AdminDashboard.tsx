@@ -159,6 +159,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   const [promotionStarts,setPromotionStarts]=useState('');
   const [promotionEnds,setPromotionEnds]=useState('');
   const [promotionBusy,setPromotionBusy]=useState(false);
+  const [promotionModalOpen,setPromotionModalOpen]=useState(false);
   const [diagnostics,setDiagnostics]=useState<any[]>([]);
   const [diagnosticsBusy,setDiagnosticsBusy]=useState(false);
   const [lastRefreshed,setLastRefreshed]=useState<Date|null>(null);
@@ -496,7 +497,7 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
       ends_at:promotionEnds?new Date(promotionEnds).toISOString():null,is_active:false
     });
     if(error)setMessage(error.code==='23505'?'That coupon code is already in use. Choose another code.':error.message);
-    else{setMessage('Coupon created as a draft. Review it, then activate it when ready.');setPromotionName('');setPromotionDescription('');setPromotionRules('10');setPromotionCoupon('');setPromotionMinimum('0');setPromotionMaximum('');setPromotionUsageLimit('');setPromotionStarts('');setPromotionEnds('');void refreshPromotions();}
+    else{setMessage('Coupon created as a draft. Review it, then activate it when ready.');setPromotionName('');setPromotionDescription('');setPromotionRules('10');setPromotionCoupon('');setPromotionMinimum('0');setPromotionMaximum('');setPromotionUsageLimit('');setPromotionStarts('');setPromotionEnds('');setPromotionModalOpen(false);void refreshPromotions();}
     setPromotionBusy(false);
   }
   async function togglePromotion(id:string,isActive:boolean){
@@ -607,35 +608,34 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
     <span className={customer.is_active?'admin-active-pill':'admin-inactive-pill'}>{customer.is_active?'Active':'Inactive'}</span>
   </article>)}</div>}
 </section>}
-      {activeTab==='promotions'&&<section className="admin-card">
-  <div className="admin-section-heading"><div><span className="eyebrow">CUSTOMER CAMPAIGNS</span><h2><Percent/> Promotions & offers</h2><p>Build a clear offer, preview it and activate it when you're ready.</p></div></div>
-  <div className="promotion-guidance"><strong>Quick idea</strong><span>Start with a small percentage offer for a product category, or a fixed rupee discount for orders above a minimum amount. Every new coupon remains a draft until you activate it.</span></div>
-  <div className="promotion-quick-presets"><span>Quick start</span><button type="button" onClick={()=>{setPromotionType('percentage');setPromotionRules('10');}}>10% OFF</button><button type="button" onClick={()=>{setPromotionType('fixed_amount');setPromotionRules('20');}}>₹20 OFF</button><button type="button" onClick={()=>{setPromotionType('percentage');setPromotionRules('5');}}>5% OFF</button></div>
-  <article className="promotion-live-preview"><span>OFFER PREVIEW</span><div><strong>{promotionName.trim()||'Your offer name'}</strong><b>{promotionType==='percentage'?promotionRules+'% OFF':'₹'+promotionRules+' OFF'}</b></div><small>Use code <strong>{promotionCoupon.trim().toUpperCase()||'YOURCODE'}</strong> at checkout</small></article>
-  <form className="admin-form admin-promotion-form" onSubmit={event=>{event.preventDefault();void addPromotion();}}>
-    <label>Promotion name<input required value={promotionName} onChange={e=>setPromotionName(e.target.value)} placeholder="e.g. Weekend dairy savings"/></label>
-    <label>Description<textarea className="admin-modern-textarea" rows={3} value={promotionDescription} onChange={e=>setPromotionDescription(e.target.value)} placeholder="Describe the offer customers will see"/></label>
-    <label>Coupon code<input required maxLength={24} value={promotionCoupon} onChange={e=>setPromotionCoupon(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g,''))} placeholder="e.g. SAI10"/></label>
-    <div className="admin-two">
-      <label>Minimum order value (₹)<input type="number" min="0" step="0.01" value={promotionMinimum} onChange={e=>setPromotionMinimum(e.target.value)}/></label>
-      <label>Maximum discount (₹)<input type="number" min="0.01" step="0.01" value={promotionMaximum} onChange={e=>setPromotionMaximum(e.target.value)} placeholder="No limit"/></label>
-    </div>
-    <div className="admin-two">
-      <label>Usage limit<input type="number" min="1" step="1" value={promotionUsageLimit} onChange={e=>setPromotionUsageLimit(e.target.value)} placeholder="Unlimited"/></label>
-      <label>Starts at<input type="datetime-local" value={promotionStarts} onChange={e=>setPromotionStarts(e.target.value)}/></label>
-    </div>
-    <label>Ends at<input type="datetime-local" value={promotionEnds} onChange={e=>setPromotionEnds(e.target.value)}/></label>
-    <div className="admin-two">
-      <AdminSelect label="Offer type" value={promotionType} onChange={setPromotionType} options={[{value:'percentage',label:'Percentage discount'},{value:'fixed_amount',label:'Fixed amount off'}]}/>
-      <label>{promotionType==='percentage'?'Discount (%)':promotionType==='fixed_amount'?'Discount (₹)':'Offer value'}<input type="number" min="1" step="0.01" value={promotionRules} onChange={e=>setPromotionRules(e.target.value)} disabled={promotionType==='free_delivery'||promotionType==='bundle'}/></label>
-    </div>
-    <button className="admin-submit" disabled={promotionBusy}><Save size={16}/>{promotionBusy?'Creating…':'Create promotion'}</button>
-  </form>
-  <div className="admin-promotion-list">{promotions.length===0?<p className="admin-hint">No promotions created yet.</p>:promotions.map(p=><article className="admin-promotion-row" key={p.id}>
-    <div><strong>{p.name}</strong><small>{p.description||p.promotion_type.replaceAll('_',' ')}</small><small>{p.coupon_code?('Code: '+p.coupon_code+' · '):''}{p.promotion_type.replaceAll('_',' ')} · Min ₹{Number(p.minimum_order_value??0).toFixed(0)} · Used {p.usage_count??0}{p.usage_limit?'/'+p.usage_limit:''}</small><small>{p.ends_at?'Ends '+new Date(p.ends_at).toLocaleString():'No expiry set'}</small></div>
-    <span className={p.is_active?'admin-active-pill':'admin-inactive-pill'}>{p.is_active?'Active':'Draft'}</span>
-    <button type="button" onClick={()=>void togglePromotion(p.id,p.is_active)}>{p.is_active?'Pause':'Activate'}</button>
-  </article>)}</div>
+      {activeTab==='promotions'&&<section className="admin-card admin-promotions-page">
+  <div className="admin-section-heading"><div><span className="eyebrow">CUSTOMER CAMPAIGNS</span><h2><Percent/> Promotions & offers</h2><p>Create simple offers customers can use at checkout. New coupons stay as drafts until you activate them.</p></div><button type="button" className="admin-add-product-trigger" onClick={()=>setPromotionModalOpen(true)}><PackagePlus size={17}/> Create offer</button></div>
+  <div className="promotion-dashboard-stats">
+    <article><span>Active offers</span><strong>{promotions.filter(p=>p.is_active).length}</strong><small>Visible and available to customers</small></article>
+    <article><span>Draft offers</span><strong>{promotions.filter(p=>!p.is_active).length}</strong><small>Ready for your review</small></article>
+    <article><span>Coupons used</span><strong>{promotions.reduce((n,p)=>n+Number(p.usage_count??0),0)}</strong><small>Total recorded redemptions</small></article>
+  </div>
+  {promotions.length===0?<div className="promotion-empty-state"><span><TicketPercent size={24}/></span><strong>No offers yet</strong><p>Create your first offer. You can preview it before activating it.</p><button type="button" className="admin-add-product-trigger" onClick={()=>setPromotionModalOpen(true)}>Create your first offer</button></div>:<div className="admin-promotion-list">{promotions.map(p=><article className="admin-promotion-row admin-promotion-card" key={p.id}>
+    <div className="admin-promotion-card-top"><span className={p.is_active?'admin-active-pill':'admin-inactive-pill'}>{p.is_active?'Active':'Draft'}</span><small>{p.ends_at?'Ends '+new Date(p.ends_at).toLocaleDateString():'No expiry set'}</small></div>
+    <div><strong>{p.name}</strong><small>{p.description||p.promotion_type.replaceAll('_',' ')}</small></div>
+    <div className="admin-promotion-code"><span>COUPON CODE</span><b>{p.coupon_code||'No code'}</b></div>
+    <div className="admin-promotion-card-bottom"><small>{p.promotion_type.replaceAll('_',' ')} · Min ₹{Number(p.minimum_order_value??0).toFixed(0)} · Used {p.usage_count??0}{p.usage_limit?'/'+p.usage_limit:''}</small><button type="button" onClick={()=>void togglePromotion(p.id,p.is_active)}>{p.is_active?'Pause offer':'Activate offer'}</button></div>
+  </article>)}</div>}
+  {promotionModalOpen&&<div className="admin-product-modal-backdrop" role="dialog" aria-modal="true" aria-label="Create promotion" onClick={()=>!promotionBusy&&setPromotionModalOpen(false)}><section className="admin-product-modal admin-promotion-modal" onClick={event=>event.stopPropagation()}>
+    <header><div><span className="eyebrow">NEW CUSTOMER OFFER</span><h2><TicketPercent/> Create an offer</h2><p>Choose a discount, set a coupon code and preview it before saving.</p></div><button type="button" className="admin-modal-close" onClick={()=>setPromotionModalOpen(false)} aria-label="Close"><X size={20}/></button></header>
+    <div className="promotion-quick-presets"><span>Quick start</span><button type="button" onClick={()=>{setPromotionType('percentage');setPromotionRules('10');}}>10% OFF</button><button type="button" onClick={()=>{setPromotionType('fixed_amount');setPromotionRules('20');}}>₹20 OFF</button><button type="button" onClick={()=>{setPromotionType('percentage');setPromotionRules('5');}}>5% OFF</button></div>
+    <article className="promotion-live-preview"><span>LIVE OFFER PREVIEW</span><div><strong>{promotionName.trim()||'Your offer name'}</strong><b>{promotionType==='percentage'?promotionRules+'% OFF':'₹'+promotionRules+' OFF'}</b></div><small>Use code <strong>{promotionCoupon.trim().toUpperCase()||'YOURCODE'}</strong> at checkout</small></article>
+    <form className="admin-form admin-promotion-form" onSubmit={event=>{event.preventDefault();void addPromotion();}}>
+      <label>Offer name<input required value={promotionName} onChange={e=>setPromotionName(e.target.value)} placeholder="e.g. Weekend dairy savings"/></label>
+      <label>Short description<textarea className="admin-modern-textarea" rows={2} value={promotionDescription} onChange={e=>setPromotionDescription(e.target.value)} placeholder="Tell customers what this offer is for"/></label>
+      <label>Coupon code<input required maxLength={24} value={promotionCoupon} onChange={e=>setPromotionCoupon(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g,''))} placeholder="e.g. SAI10"/></label>
+      <div className="admin-two"><label>Minimum order (₹)<input type="number" min="0" step="0.01" value={promotionMinimum} onChange={e=>setPromotionMinimum(e.target.value)}/></label><label>Maximum discount (₹)<input type="number" min="0.01" step="0.01" value={promotionMaximum} onChange={e=>setPromotionMaximum(e.target.value)} placeholder="No limit"/></label></div>
+      <div className="admin-two"><label>Usage limit<input type="number" min="1" step="1" value={promotionUsageLimit} onChange={e=>setPromotionUsageLimit(e.target.value)} placeholder="Unlimited"/></label><AdminSelect label="Discount type" value={promotionType} onChange={setPromotionType} options={[{value:'percentage',label:'Percentage discount'},{value:'fixed_amount',label:'Fixed amount off'}]}/></div>
+      <div className="admin-two"><label>{promotionType==='percentage'?'Discount (%)':'Discount amount (₹)'}<input type="number" min="0.01" step="0.01" value={promotionRules} onChange={e=>setPromotionRules(e.target.value)}/></label><label>Starts at<input type="datetime-local" value={promotionStarts} onChange={e=>setPromotionStarts(e.target.value)}/></label></div>
+      <label>Ends at<input type="datetime-local" value={promotionEnds} onChange={e=>setPromotionEnds(e.target.value)}/></label>
+      <button className="admin-submit" disabled={promotionBusy}><Save size={16}/>{promotionBusy?'Creating…':'Save as draft'}</button>
+    </form>
+  </section></div>}
 </section>}
       {activeTab==='store'&&<section className="admin-card"><h2><Store/> Delivery settings</h2><label className="admin-label">Delivery radius (km)<input type="number" min=".5" max="100" step=".5" value={radius} onChange={e=>setRadius(e.target.value)}/></label><label className="admin-label">Delivery fee (₹)<input type="number" min="0" value={deliveryFee} onChange={e=>setDeliveryFee(e.target.value)}/></label><div className="admin-store-location-card"><div><MapPinned size={22}/><span><strong>Store map location</strong><small>{storeLat&&storeLng?'Shop pin saved · '+Number(storeLat).toFixed(5)+' N, '+Number(storeLng).toFixed(5)+' E':'Shop pin not selected yet'}</small><small className="admin-location-helper">Coordinates are saved from the map. You do not need to type latitude or longitude.</small></span></div><button type="button" className="admin-location-button" onClick={captureStoreLocation}><MapPinned size={16}/> {storeLat&&storeLng?'Change map pin':'Choose on map'}</button></div><p className="admin-hint">Pin the exact shop entrance. This location is used for delivery distance and customer directions.</p><label className="admin-check"><input type="checkbox" checked={accepting} onChange={e=>setAccepting(e.target.checked)}/> Accepting orders</label><button className="admin-submit" onClick={saveStore}>Save store settings</button></section>}
       {storeMapOpen&&<Suspense fallback={<div className="admin-map-loading">Opening store map…</div>}><MapPicker initial={{latitude:storeLat?Number(storeLat):14.6708333,longitude:storeLng?Number(storeLng):77.5822222}} onClose={()=>setStoreMapOpen(false)} onConfirm={point=>{setStoreLat(String(point.latitude));setStoreLng(String(point.longitude));setStoreMapOpen(false);setMessage('Store map pin selected. Save store settings to apply it.');}}/></Suspense>}

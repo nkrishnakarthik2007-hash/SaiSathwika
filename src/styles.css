@@ -945,3 +945,52 @@ button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
 .map-pin-summary button{display:flex;align-items:center;gap:4px;justify-self:start;border:0;background:none;color:#267542;padding:2px 0;font:700 9px system-ui}
 .map-picker-bottom{grid-template-columns:auto minmax(0,1fr) auto}
 @media(max-width:560px){.map-picker-bottom{grid-template-columns:1fr 1fr}.map-pin-summary{grid-column:1/-1;grid-row:1}.map-picker-bottom .map-confirm{grid-column:2;grid-row:2}.map-picker-bottom .map-locate{grid-column:1;grid-row:2}}
+
+
+/* Sai Sathwika admin polish: consistent native-feeling controls and campaign cards. */
+.admin-modern-textarea{display:block;width:100%;min-height:84px;max-height:180px;resize:vertical;border:1px solid #dce8d7;border-radius:15px;padding:13px 15px;background:linear-gradient(180deg,#fff 0%,#fbfdf9 100%);color:#244b30;font:500 13px/1.6 system-ui,-apple-system,'Segoe UI',sans-serif;box-shadow:inset 0 1px 2px #173b1b08;outline:none;transition:border-color .18s,box-shadow .18s}
+.admin-modern-textarea:focus{border-color:#4b9b5e;box-shadow:0 0 0 4px #2b8b4b16}
+.admin-custom-select-trigger{min-height:50px;border:1px solid #dce8d7;border-radius:14px;background:linear-gradient(180deg,#fff 0%,#fbfdf9 100%);font:600 13px system-ui}
+.admin-custom-select-menu{border:1px solid #e0eadc;border-radius:15px;background:#fff;box-shadow:0 18px 46px #173b1b20;padding:6px;z-index:1600}
+.admin-custom-select-menu button{min-height:44px;border-radius:10px;font:500 12px system-ui}
+.admin-custom-select-menu button.selected{background:#edf7e9;color:#176d3a;font-weight:700}
+.admin-promotions-page>.admin-section-heading{align-items:center}
+.promotion-dashboard-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:18px 0}
+.promotion-dashboard-stats article{display:grid;gap:5px;padding:16px;border:1px solid #e5ecdf;border-radius:16px;background:linear-gradient(145deg,#f8fbf4,#fff)}
+.promotion-dashboard-stats span{font-size:10px;font-weight:700;color:#748b74}
+.promotion-dashboard-stats strong{font-size:25px;color:#1e6036}
+.promotion-dashboard-stats small{font-size:9px;color:#8a9888;line-height:1.4}
+.promotion-empty-state{display:grid;justify-items:center;gap:9px;padding:34px 20px;border:1px dashed #d7e5d2;border-radius:18px;background:#fbfdf8;text-align:center}
+.promotion-empty-state>span{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:#eaf5e5;color:#287b43}
+.promotion-empty-state strong{font:700 18px Georgia;color:#285637}
+.promotion-empty-state p{max-width:300px;margin:0 0 7px;color:#7c8c7b;font-size:11px;line-height:1.6}
+.admin-promotion-card{display:grid;gap:12px;padding:17px;border-radius:17px;box-shadow:0 5px 16px #173b1b08}
+.admin-promotion-card-top,.admin-promotion-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.admin-promotion-card-top>small,.admin-promotion-card>div:nth-child(2)>small{color:#819080;font-size:10px}
+.admin-promotion-card>div:nth-child(2){display:grid;gap:5px}
+.admin-promotion-card>div:nth-child(2)>strong{font:700 17px Georgia;color:#254e31}
+.admin-promotion-code{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border:1px dashed #cfe0c9;border-radius:12px;background:#f7fbf3}
+.admin-promotion-code span{font-size:9px;font-weight:800;letter-spacing:.13em;color:#81917f}
+.admin-promotion-code b{font:800 13px ui-monospace,monospace;letter-spacing:.08em;color:#176d3a}
+.admin-promotion-card-bottom>small{font-size:10px;color:#7b8b79}
+.admin-promotion-card-bottom>button{border:1px solid #d5e6d0;border-radius:20px;padding:8px 12px;background:#f2f8ed;color:#286d3c;font:700 10px system-ui}
+.admin-promotion-modal{max-width:620px}
+.admin-promotion-modal .admin-form{gap:13px}
+.admin-promotion-modal .promotion-live-preview{margin:10px 0 14px}
+.admin-team-invite{gap:15px}
+.team-permission-preview{padding:15px;border-radius:15px;background:linear-gradient(135deg,#eff7e9,#fff);border:1px solid #dcebd7}
+.admin-team-row{padding:15px;border:1px solid #e8eee4;border-radius:14px;background:#fff;margin:8px 0}
+.admin-team-row>button{border:1px solid #f0d9d4;border-radius:18px;background:#fff8f6;color:#a64b3d;padding:8px 12px;font:700 10px system-ui}
+@media(max-width:700px){
+  .promotion-dashboard-stats{gap:7px}
+  .promotion-dashboard-stats article{padding:11px 9px}
+  .promotion-dashboard-stats strong{font-size:21px}
+  .promotion-dashboard-stats small{font-size:8px}
+  .admin-promotions-page>.admin-section-heading{align-items:flex-start;flex-direction:column}
+  .admin-promotions-page>.admin-section-heading>.admin-add-product-trigger{width:100%}
+  .admin-promotion-modal{max-height:calc(94dvh - env(safe-area-inset-top,0px));overflow:auto}
+  .admin-promotion-card-bottom{align-items:flex-start}
+  .admin-promotion-card-bottom>button{width:100%}
+  .mobile-store-nav{display:flex!important;position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:9999!important;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))!important}
+  .app-updates-page{padding-bottom:calc(116px + env(safe-area-inset-bottom,0px))!important}
+}

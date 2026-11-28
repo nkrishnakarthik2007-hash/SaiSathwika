@@ -21,6 +21,7 @@ if (!packageName || packageName !== appId) {
 
 const activitySource = 'package ' + packageName + ';\n\n' +
   'import android.graphics.Color;\n' +
+  'import android.graphics.drawable.ColorDrawable;\n' +
   'import android.os.Build;\n' +
   'import android.os.Bundle;\n' +
   'import android.view.View;\n' +
@@ -31,11 +32,14 @@ const activitySource = 'package ' + packageName + ';\n\n' +
   'public class MainActivity extends BridgeActivity {\n' +
   '    @Override\n' +
   '    public void onCreate(Bundle savedInstanceState) {\n' +
+  '        getWindow().setBackgroundDrawable(new ColorDrawable(Color.rgb(255, 253, 247)));\n' +
   '        super.onCreate(savedInstanceState);\n' +
   '        getWindow().setStatusBarColor(Color.TRANSPARENT);\n' +
+  '        getWindow().setNavigationBarColor(Color.rgb(255, 253, 247));\n' +
   '        applyStatusBarMode();\n' +
-  '        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && getBridge() != null && getBridge().getWebView() != null) {\n' +
-  '            getBridge().getWebView().getSettings().setForceDark(WebSettings.FORCE_DARK_OFF);\n' +
+  '        if (getBridge() != null && getBridge().getWebView() != null) {\n' +
+  '            getBridge().getWebView().setBackgroundColor(Color.rgb(255, 253, 247));\n' +
+  '            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) getBridge().getWebView().getSettings().setForceDark(WebSettings.FORCE_DARK_OFF);\n' +
   '        }\n' +
   '    }\n' +
   '    private void applyStatusBarMode() {\n' +

@@ -17,11 +17,6 @@
     #app-boot-screen:before,#app-boot-screen:after{content:"";position:absolute;width:min(86vw,520px);aspect-ratio:1;border:1px solid #2e7d4620;border-radius:50%;pointer-events:none}
     #app-boot-screen:after{width:min(68vw,400px);border-color:#2e7d4618}
     #app-boot-screen .boot-logo{position:relative;width:86px;height:86px;filter:drop-shadow(0 14px 28px #52734a24);animation:none}
-    #app-boot-screen .boot-name{position:relative;margin-top:25px;color:#19472d;font-family:Georgia,serif;font-weight:700;font-size:31px;letter-spacing:.01em}
-    #app-boot-screen .boot-tagline{position:relative;margin-top:9px;font-size:9px;font-weight:700;letter-spacing:.24em;color:#64836a}
-    #app-boot-screen .boot-track{position:relative;width:112px;height:3px;margin-top:34px;overflow:hidden;border-radius:9px;background:#dce9d8}
-    #app-boot-screen .boot-track span{display:block;width:42%;height:100%;border-radius:9px;background:linear-gradient(90deg,#1c8b4b,#d5ad52);animation:boot-progress 1.35s ease-in-out infinite}
-    #app-boot-screen .boot-caption{position:absolute;bottom:max(30px,env(safe-area-inset-bottom));font-size:11px;color:#718773}
     #app-boot-error{display:none;position:relative;z-index:2;width:min(88vw,380px);margin-top:22px;padding:16px 18px;border:1px solid #ffffff30;border-radius:16px;background:#ffffff12;backdrop-filter:blur(14px);text-align:center;color:#19472d}
     #app-boot-error p{margin:0 0 12px;font-size:12px;line-height:1.6;color:#64836a}
     #app-boot-error button{border:0;border-radius:10px;background:#17643a;color:#fff;padding:10px 18px;font:700 12px system-ui;cursor:pointer}
@@ -29,10 +24,6 @@
     @keyframes boot-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
     @keyframes boot-progress{0%{transform:translateX(-115%)}100%{transform:translateX(290%)}}
     @media(prefers-reduced-motion:reduce){#app-boot-screen .boot-logo,#app-boot-screen .boot-track span{animation:none}}
-    #app-boot-screen:before,#app-boot-screen:after{display:none}#app-boot-screen .boot-name,#app-boot-screen .boot-tagline,#app-boot-screen .boot-track,#app-boot-screen .boot-caption,#app-boot-screen .boot-credit{display:none!important}#app-boot-screen .boot-caption,#app-boot-screen .boot-name,#app-boot-screen .boot-tagline,#app-boot-screen .boot-track{display:none!important}
-    #app-boot-screen .boot-credit{display:none!important}
-    #app-boot-screen .boot-credit strong{color:#28643a}
-    #app-boot-screen .boot-credit span{font-size:9px;color:#94a08d}
   </style>
   <script>
     (() => {
@@ -86,11 +77,6 @@
       <path d="M60 100c-12-10-24-10-36-6m36 6c12-10 24-10 36-6m-36 6v10" fill="none" stroke="#e0f2fe" stroke-width="3.5" stroke-linecap="round"/>
       <path d="M94 14l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#fff"/>
     </svg>
-    <div class="boot-name">Sai Sathwika</div>
-    <div class="boot-tagline">FRESHNESS AT YOUR DOORSTEP</div>
-    <div class="boot-track"><span></span></div>
-    <div id="app-boot-caption" class="boot-caption">A little freshness is on its way…</div>
-    <div class="boot-credit">Made with love by <strong>Krishna Karthik</strong><span>Created in Andhra Pradesh, India</span></div>
     <div id="app-boot-error" role="alert" aria-live="assertive">
       <p id="app-boot-error-message">We found a startup problem. Your error details will be saved on this device.</p>
       <button type="button" onclick="window.location.reload()">Try again</button>
