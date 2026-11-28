@@ -9,16 +9,18 @@ setWorkerUrl(workerUrl);
 
 type Coordinates = { latitude: number; longitude: number };
 
-export default function MapPicker({ initial, onConfirm, onClose }: {
-  initial: Coordinates;
+export default function MapPicker({ initial, initialSearch = '', onConfirm, onClose }: {
+  initial?: Coordinates;
+  initialSearch?: string;
   onConfirm: (point: Coordinates) => void;
   onClose: () => void;
 }) {
+  const startingPoint = initial ?? { latitude: 20.5937, longitude: 78.9629 };
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
   const marker = useRef<Marker | null>(null);
-  const point = useRef<Coordinates>(initial);
-  const [selected, setSelected] = useState<Coordinates>(initial);
+  const point = useRef<Coordinates>(startingPoint);
+  const [selected, setSelected] = useState<Coordinates>(startingPoint);
   const [search, setSearch] = useState('');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
@@ -29,13 +31,13 @@ export default function MapPicker({ initial, onConfirm, onClose }: {
     const instance = new MapLibreMap({
       container: container.current,
       style: 'https://tiles.openfreemap.org/styles/liberty',
-      center: [initial.longitude, initial.latitude],
-      zoom: 16,
+      center: [startingPoint.longitude, startingPoint.latitude],
+      zoom: initial ? 16 : 5,
       attributionControl: { compact: true },
     });
     map.current = instance;
     marker.current = new Marker({ color: '#087c34', draggable: true })
-      .setLngLat([initial.longitude, initial.latitude]).addTo(instance);
+      .setLngLat([startingPoint.longitude, startingPoint.latitude]).addTo(instance);
     marker.current.on('dragend', () => {
       const pos = marker.current!.getLngLat();
       const next = { latitude: pos.lat, longitude: pos.lng };
@@ -46,8 +48,8 @@ export default function MapPicker({ initial, onConfirm, onClose }: {
     return () => { marker.current?.remove(); instance.remove(); map.current = null; };
   }, []);
 
-  async function findPlace() {
-    const q = search.trim();
+  async function findPlace(query = search) {
+    const q = query.trim();
     if (!q) return;
     setSearching(true); setError('');
     try {
@@ -66,6 +68,12 @@ export default function MapPicker({ initial, onConfirm, onClose }: {
     } finally { setSearching(false); }
   }
 
+  useEffect(() => {
+    if (!initialSearch.trim()) return;
+    setSearch(initialSearch);
+    void findPlace(initialSearch);
+  }, []);
+
   async function locateMe() {
     setError('');
     try {
@@ -80,14 +88,14 @@ export default function MapPicker({ initial, onConfirm, onClose }: {
 
   return <div className="map-picker-backdrop" role="dialog" aria-modal="true" aria-label="Choose delivery location">
     <section className="map-picker">
-      <header><button onClick={onClose} aria-label="Back"><ArrowLeft size={19}/></button><div><strong>Pin your delivery location</strong><small>Move the pin to your exact doorstep</small></div><button onClick={onClose} aria-label="Close"><X size={19}/></button></header>
+      <header><button onClick={onClose} aria-label="Back"><ArrowLeft size={19}/></button><div><strong>Pin your delivery location</strong><small>Search your address, then move the pin to your exact doorstep</small></div><button onClick={onClose} aria-label="Close"><X size={19}/></button></header>
       <form className="map-search" onSubmit={e => { e.preventDefault(); void findPlace(); }}>
         <Search size={18}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search area, street or landmark"/><button disabled={searching}>{searching?'...':'Search'}</button>
       </form>
       <div className="map-picker-canvas" ref={container}/>
       {error && <p className="map-picker-error">{error}</p>}
       <div className="map-picker-bottom"><button className="map-locate" type="button" onClick={()=>void locateMe()}><LocateFixed size={17}/> Use my location</button><div className="map-pin-summary"><small><MapPinned size={13}/> PINNED LOCATION</small><span>{selected.latitude.toFixed(5)}, {selected.longitude.toFixed(5)}</span><button type="button" onClick={()=>{void navigator.clipboard?.writeText(selected.latitude.toFixed(6)+', '+selected.longitude.toFixed(6)).then(()=>setCopied(true)).catch(()=>setError('Could not copy coordinates.'));}}>{copied?<Check size={13}/>:<Copy size={13}/>} {copied?'Copied':'Copy coordinates'}</button></div><button className="map-confirm" type="button" onClick={()=>onConfirm(point.current)}>Confirm location</button></div>
-      <p className="map-attribution">© OpenStreetMap contributors · Maps by OpenFreeMap · Powered by MapLibre</p>
+      <p className="map-attribution">Check that the pin matches the address you entered. GPS is optional. · © OpenStreetMap contributors · Maps by OpenFreeMap · Powered by MapLibre</p>
     </section>
   </div>;
 }
