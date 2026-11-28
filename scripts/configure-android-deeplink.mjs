@@ -12,6 +12,26 @@ const read = async (path) => {
 };
 
 let manifest = await read(manifestPath);
+
+// Capacitor Geolocation uses Android's runtime permission dialog, but the
+// permissions must first be declared in the generated native manifest.
+const locationPermissions = [
+  'android.permission.ACCESS_COARSE_LOCATION',
+  'android.permission.ACCESS_FINE_LOCATION',
+];
+const manifestOpen = manifest.match(/<manifest\\b[^>]*>/);
+if (!manifestOpen || manifestOpen.index === undefined) {
+  throw new Error('Could not find the opening manifest tag in AndroidManifest.xml.');
+}
+const missingLocationPermissions = locationPermissions
+  .filter((permission) => !manifest.includes('android:name="' + permission + '"'));
+if (missingLocationPermissions.length > 0) {
+  const permissionXml = missingLocationPermissions
+    .map((permission) => '    <uses-permission android:name="' + permission + '" />')
+    .join('\\n') + '\\n';
+  const insertAt = manifestOpen.index + manifestOpen[0].length;
+  manifest = manifest.slice(0, insertAt) + '\\n' + permissionXml + manifest.slice(insertAt);
+}
 const mainActivityPath = javaRoot + '/MainActivity.java';
 const mainActivity = await read(mainActivityPath);
 const packageName = mainActivity.match(/^package\s+([\w.]+);/m)?.[1];
@@ -81,4 +101,4 @@ if (!manifest.includes('android:scheme="' + scheme + '"') || !manifest.includes(
 }
 
 await writeFile(manifestPath, manifest, 'utf8');
-console.log('Configured OAuth deep link only. No app-install permission or self-installing APK updater is included.');
+console.log('Configured OAuth deep link and Android foreground location permissions. Runtime permission is still requested only when the customer taps the location button. No background-location or app-install permission is included.');
