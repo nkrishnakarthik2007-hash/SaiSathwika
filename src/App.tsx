@@ -165,6 +165,9 @@ export default function App() {
     if (Capacitor.getPlatform() !== 'android') { setInstalledAppVersion('Web version'); return; }
     void NativeApp.getInfo().then(info => { setInstalledAppVersion(info.version || 'Unknown'); setInstalledBuild(String(info.build ?? '')); }).catch(() => setInstalledAppVersion('Unable to read version'));
   }, []);
+  useEffect(() => {
+    if (customerPage === 'updates' && Capacitor.getPlatform() === 'android') void checkForUpdates();
+  }, [customerPage]);
 
   useEffect(() => {
     let active = true;
