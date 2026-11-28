@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App as NativeApp } from '@capacitor/app';
@@ -8,11 +8,12 @@ import { ArrowLeft, RefreshCw, ArrowRight, CheckCircle2, Clock3, IceCream, Leaf,
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { AppUpdater } from './lib/app-updater';
 import { flushAppDiagnostics, installAppDiagnostics, recordAppDiagnostic } from './lib/diagnostics';
+import { getDeviceLocation } from './lib/location';
 
 installAppDiagnostics();
 import AdminDashboard from './AdminDashboard';
 import DeliveryDashboard from './DeliveryDashboard';
-import MapPicker from './MapPicker';
+const MapPicker = lazy(() => import('./MapPicker'));
 
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
 type Category = { id: string; name: string };
@@ -170,7 +171,7 @@ export default function App() {
   const [bootFailsafeElapsed, setBootFailsafeElapsed] = useState(false);
 
   useEffect(() => {
-    const failsafe = window.setTimeout(() => setBootFailsafeElapsed(true), 10000);
+    const failsafe = window.setTimeout(() => setBootFailsafeElapsed(true), 4500);
     return () => window.clearTimeout(failsafe);
   }, []);
 
@@ -180,7 +181,7 @@ export default function App() {
     let removeTimer: number | undefined;
     const bootStartedAt = Number(document.body.dataset.bootStartedAt || Date.now());
     const bootScreen = document.getElementById('app-boot-screen');
-    const appDataReady = !loading && (!supabase || sessionResolved);
+    const appDataReady = !supabase || sessionResolved;
 
     // Never uncover a blank React root. Wait for the first usable app state,
     // with a failsafe for slow or unavailable networks.
@@ -596,25 +597,26 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function captureLocation() {
-    if(!navigator.geolocation){setNotice('Location is not supported on this device.');return;}
+  async function captureLocation() {
     setLocationBusy(true);
-    navigator.geolocation.getCurrentPosition(pos=>{
-      setCoords({latitude:pos.coords.latitude,longitude:pos.coords.longitude});
-      setLocationBusy(false); setNotice('GPS location captured. It will be saved with your delivery address when you place an order.');
-    },err=>{
-      setLocationBusy(false);
-      setNotice(err.code===1?'Please allow location access to save your delivery location.':'Could not get your location. Try again outdoors.');
-    },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+    try {
+      const point=await getDeviceLocation();
+      setCoords(point);
+      setNotice('GPS location captured. It will be saved with your delivery address when you place an order.');
+    } catch(error) {
+      setNotice(error instanceof Error?error.message:'Could not get your location. Try again outdoors.');
+    } finally { setLocationBusy(false); }
   }
 
-  function openAddressMap() {
-    if (!navigator.geolocation) { setNotice('Location is not supported on this device.'); return; }
+  async function openAddressMap() {
     setLocationBusy(true);
-    navigator.geolocation.getCurrentPosition(pos => {
-      const point={latitude:pos.coords.latitude,longitude:pos.coords.longitude};
-      setCoords(point); setLocationBusy(false); setAddressMapOpen(true);
-    },err=>{setLocationBusy(false);setNotice(err.code===1?'Please allow location access to choose your address on the map.':'Could not get your GPS location. Try again.');},{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+    try {
+      const point=await getDeviceLocation();
+      setCoords(point);
+      setAddressMapOpen(true);
+    } catch(error) {
+      setNotice(error instanceof Error?error.message:'Could not get your GPS location. Try again.');
+    } finally { setLocationBusy(false); }
   }
 
   async function saveProfileAddress() {
@@ -900,7 +902,7 @@ export default function App() {
       </section>
     </section>}
 
-    {!['login','updates'].includes(customerPage) && <nav className="mobile-store-nav" aria-label="Mobile store navigation">
+    {customerPage !== 'login' && <nav className="mobile-store-nav" aria-label="Mobile store navigation">
       <button className={customerPage === 'home' ? 'active' : ''} onClick={() => navigateCustomerPage('home')}><Home size={19}/><span>Home</span></button>
       <button className={customerPage === 'shop' ? 'active' : ''} onClick={() => navigateCustomerPage('shop')}><Store size={19}/><span>Shop</span></button>
       <button className={customerPage === 'orders' ? 'active' : ''} onClick={() => navigateCustomerPage('orders')}><ClipboardList size={19}/><span>Orders</span></button>
@@ -953,7 +955,7 @@ export default function App() {
       </div>
     </section>}
 
-    {addressMapOpen && coords && <MapPicker initial={coords} onClose={()=>setAddressMapOpen(false)} onConfirm={point=>{setCoords(point);setAddressMapOpen(false);setNotice('Map location selected. Enter your house and street details, then save.');}}/>}
+    {addressMapOpen && coords && <Suspense fallback={<div className="map-picker-loading">Opening map…</div>}><MapPicker initial={coords} onClose={()=>setAddressMapOpen(false)} onConfirm={point=>{setCoords(point);setAddressMapOpen(false);setNotice('Map location selected. Enter your house and street details, then save.');}}/></Suspense>}
     {notice && <div className="notice" role="status"><CheckCircle2 size={17}/>{notice}<button onClick={() => setNotice('')}><X size={16}/></button></div>}
   </main>;
 }
