@@ -11,8 +11,8 @@ import { flushAppDiagnostics, installAppDiagnostics, recordAppDiagnostic } from 
 import { getDeviceLocation } from './lib/location';
 
 installAppDiagnostics();
-import AdminDashboard from './AdminDashboard';
-import DeliveryDashboard from './DeliveryDashboard';
+const AdminDashboard = lazy(() => import('./AdminDashboard'));
+const DeliveryDashboard = lazy(() => import('./DeliveryDashboard'));
 const MapPicker = lazy(() => import('./MapPicker'));
 
 type Product = { id: string; category_id?: string | null; name: string; price: number; stock_quantity:number; mrp: number | null; image_urls: string[]; variant_label: string | null; unit: string | null; brands?: { name: string }[] | null };
@@ -773,16 +773,16 @@ export default function App() {
     }
   }
 
-  if(adminView && adminRole === 'delivery_staff') return <DeliveryDashboard
+  if(adminView && adminRole === 'delivery_staff') return <Suspense fallback={<div className="admin-map-loading">Opening delivery desk…</div>}><DeliveryDashboard
     onSignOut={async()=>{await supabase?.auth.signOut();setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
-  />;
+  /></Suspense>;
 
   if(adminView && ['admin','owner','super_admin'].includes(adminRole)) return <>
-    <AdminDashboard
+    <Suspense fallback={<div className="admin-map-loading">Opening store management…</div>}><AdminDashboard
       role={adminRole}
       onBack={()=>{setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
       onSignOut={async()=>{await supabase?.auth.signOut();setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
-    />
+    /></Suspense>
     <nav className="mobile-store-nav admin-customer-dock" aria-label="Customer app navigation">
       <button onClick={()=>{setAdminView(false);navigateCustomerPage('home');}}><Home size={19}/><span>Home</span></button>
       <button onClick={()=>{setAdminView(false);navigateCustomerPage('shop');}}><Store size={19}/><span>Shop</span></button>
