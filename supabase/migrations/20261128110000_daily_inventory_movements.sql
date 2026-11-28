@@ -13,6 +13,7 @@ create table if not exists public.inventory_movements (
 create index if not exists inventory_movements_created_idx on public.inventory_movements(created_at desc);
 create index if not exists inventory_movements_product_idx on public.inventory_movements(product_id,created_at desc);
 alter table public.inventory_movements enable row level security;
+grant select on public.inventory_movements to authenticated;
 drop policy if exists "Admins read inventory movements" on public.inventory_movements;
 create policy "Admins read inventory movements" on public.inventory_movements
   for select to authenticated using (public.is_admin());
@@ -44,7 +45,7 @@ after update of stock_quantity on public.products
 for each row execute function public.log_product_stock_movement();
 
 create or replace function public.receive_product_stock(p_product_id uuid,p_quantity integer,p_note text default null)
-returns integer language plpgsql security definer set search_path=public
+returns integer language plpgsql security invoker set search_path=public
 as $$
 declare v_new_stock integer;
 begin
@@ -58,4 +59,5 @@ begin
 end;
 $$;
 revoke all on function public.receive_product_stock(uuid,integer,text) from public,anon;
+revoke all on function public.log_product_stock_movement() from public,anon,authenticated;
 grant execute on function public.receive_product_stock(uuid,integer,text) to authenticated;
