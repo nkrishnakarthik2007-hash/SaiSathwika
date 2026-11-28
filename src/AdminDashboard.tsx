@@ -601,7 +601,9 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
 </section>}
       {activeTab==='promotions'&&<section className="admin-card">
   <h2><Percent/> Promotions & offers</h2>
-  <p className="admin-hint">Create discounts for the store. New promotions start disabled so you can review them before customers see them.</p>
+  <p className="admin-hint">Create a coupon for your customers. Every new offer stays in Draft until you activate it.</p>
+  <div className="promotion-quick-presets"><span>Quick start</span><button type="button" onClick={()=>{setPromotionType('percentage');setPromotionRules('10');}}>10% OFF</button><button type="button" onClick={()=>{setPromotionType('fixed_amount');setPromotionRules('20');}}>₹20 OFF</button><button type="button" onClick={()=>{setPromotionType('percentage');setPromotionRules('5');}}>5% OFF</button></div>
+  <article className="promotion-live-preview"><span>OFFER PREVIEW</span><div><strong>{promotionName.trim()||'Your offer name'}</strong><b>{promotionType==='percentage'?promotionRules+'% OFF':'₹'+promotionRules+' OFF'}</b></div><small>Use code <strong>{promotionCoupon.trim().toUpperCase()||'YOURCODE'}</strong> at checkout</small></article>
   <form className="admin-form admin-promotion-form" onSubmit={event=>{event.preventDefault();void addPromotion();}}>
     <label>Promotion name<input required value={promotionName} onChange={e=>setPromotionName(e.target.value)} placeholder="e.g. Weekend dairy savings"/></label>
     <label>Description<textarea className="admin-modern-textarea" rows={3} value={promotionDescription} onChange={e=>setPromotionDescription(e.target.value)} placeholder="Describe the offer customers will see"/></label>
