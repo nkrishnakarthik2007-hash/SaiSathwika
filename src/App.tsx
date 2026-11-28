@@ -775,11 +775,21 @@ export default function App() {
     onSignOut={async()=>{await supabase?.auth.signOut();setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
   />;
 
-  if(adminView && ['admin','owner','super_admin'].includes(adminRole)) return <AdminDashboard
-    role={adminRole}
-    onBack={()=>{setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
-    onSignOut={async()=>{await supabase?.auth.signOut();setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
-  />;
+  if(adminView && ['admin','owner','super_admin'].includes(adminRole)) return <>
+    <AdminDashboard
+      role={adminRole}
+      onBack={()=>{setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
+      onSignOut={async()=>{await supabase?.auth.signOut();setAdminView(false);setAdminPortalRequested(false);localStorage.removeItem('sai-sathwika-admin-portal');}}
+    />
+    <nav className="mobile-store-nav admin-customer-dock" aria-label="Customer app navigation">
+      <button onClick={()=>{setAdminView(false);navigateCustomerPage('home');}}><Home size={19}/><span>Home</span></button>
+      <button onClick={()=>{setAdminView(false);navigateCustomerPage('shop');}}><Store size={19}/><span>Shop</span></button>
+      <button onClick={()=>{setAdminView(false);navigateCustomerPage('orders');}}><ClipboardList size={19}/><span>Orders</span></button>
+      <button onClick={()=>{setAdminView(false);navigateCustomerPage('profile');}}><UserRound size={19}/><span>Profile</span></button>
+      <button className="mobile-admin-nav active" aria-current="page" onClick={()=>setAdminView(true)}><ShieldCheck size={19}/><span>Admin</span></button>
+      <button onClick={()=>{setAdminView(false);setCartOpen(true);}}><ShoppingBag size={19}/><span>Cart{cartCount?' · '+cartCount:''}</span></button>
+    </nav>
+  </>;
 
   return <main>
     <div className="announcement"><span>{storeAccepting===true?'We are accepting orders · Fresh dairy from your neighbourhood':storeAccepting===false?'Online ordering is not open yet · Browse our products':'Fresh dairy from your neighbourhood · Free delivery at launch'}</span></div>
