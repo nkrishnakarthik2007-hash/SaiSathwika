@@ -110,6 +110,9 @@ jobs:
           set -o pipefail
           ./gradlew bundleRelease --stacktrace 2>&1 | tee ../diagnostics/android-bundle-build.log
           cp app/build/outputs/bundle/release/app-release.aab ../SaiSathwika.aab
+      - name: Prepare signed APK for signature audit
+        if: steps.signing-check.outputs.enabled == 'true'
+        run: cp android/app/build/outputs/apk/release/app-release.apk SaiSathwika.apk
       - name: Audit Android manifest and release signatures
         if: steps.signing-check.outputs.enabled == 'true'
         run: |
