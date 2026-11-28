@@ -656,7 +656,6 @@ export default function AdminDashboard({ onBack, onSignOut, role }: { onBack: ()
   </article>)}</div>}
 </section>}
     </section>
-    </section>
   </main>;
 
 }
